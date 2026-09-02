@@ -136,12 +136,7 @@ export function CoordinatesPicker({ defaultLatitude, defaultLongitude, errors }:
         Emplacement exact — cliquez sur la carte, ou saisissez les coordonnées directement
       </span>
 
-      <div
-        ref={containerRef}
-        className="mt-2 h-72 w-full overflow-hidden rounded-xl border border-border"
-      />
-
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className="mt-2 grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="latitude" className="text-xs text-muted-foreground">
             Latitude
@@ -188,6 +183,13 @@ export function CoordinatesPicker({ defaultLatitude, defaultLongitude, errors }:
         Utiliser ma position actuelle
       </button>
       {geolocationError && <p className="mt-1 text-xs text-destructive">{geolocationError}</p>}
+
+      {/* La carte ferme le bloc : les coordonnées se saisissent au-dessus, et
+          cliquer sur la carte les met à jour. */}
+      <div
+        ref={containerRef}
+        className="mt-3 h-72 w-full overflow-hidden rounded-xl border border-border"
+      />
     </div>
   )
 }
