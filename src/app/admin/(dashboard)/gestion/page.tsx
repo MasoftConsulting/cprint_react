@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 }
 
 async function AssignmentBoard() {
+  await requireUser()
   const [machines, sites] = await Promise.all([getAvailableMachines(), getSiteAssignments()])
 
   return (
@@ -102,9 +103,7 @@ function BoardSkeleton() {
   )
 }
 
-export default async function AdminGestionPage() {
-  await requireUser()
-
+export default function AdminGestionPage() {
   return (
     <>
       <p className="text-sm text-muted-foreground">

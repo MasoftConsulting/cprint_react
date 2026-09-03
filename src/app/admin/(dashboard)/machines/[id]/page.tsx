@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { CardsSkeleton } from '@/components/ui/skeletons'
 import { requireUser } from '@/lib/dal'
 import { updateMachine } from '@/features/machines/actions'
 import { MachineForm } from '@/features/machines/components/machine-form'
@@ -10,10 +12,10 @@ export const metadata: Metadata = {
   title: 'Modifier une machine',
 }
 
-export default async function EditMachinePage(props: PageProps<'/admin/machines/[id]'>) {
+async function EditMachineForm({ params }: { params: Promise<{ id: string }> }) {
   await requireUser()
 
-  const { id } = await props.params
+  const { id } = await params
   const machineId = Number(id)
   if (!Number.isInteger(machineId)) notFound()
 
@@ -24,4 +26,12 @@ export default async function EditMachinePage(props: PageProps<'/admin/machines/
   const action = updateMachine.bind(null, machine.id_machine)
 
   return <MachineForm action={action} machine={machine} submitLabel="Mettre à jour" />
+}
+
+export default function EditMachinePage(props: PageProps<'/admin/machines/[id]'>) {
+  return (
+    <Suspense fallback={<CardsSkeleton count={4} />}>
+      <EditMachineForm params={props.params} />
+    </Suspense>
+  )
 }

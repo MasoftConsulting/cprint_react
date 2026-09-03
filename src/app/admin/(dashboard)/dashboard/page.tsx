@@ -48,20 +48,30 @@ function StatCardsSkeleton() {
   )
 }
 
-export default async function DashboardPage() {
+async function WelcomeCard() {
   const user = await requireUser()
 
   return (
-    <>
-      <div className="surface-card bg-[image:var(--gradient-primary)] p-6 text-primary-foreground sm:p-8">
-        <p className="font-display text-xl font-bold sm:text-2xl">Bienvenue, {user.name} 👋</p>
-        <p className="mt-1 text-sm text-primary-foreground/80">
-          Voici l&apos;espace d&apos;administration de Campus Print. Les modules ci-dessous seront
-          connectés à mesure que le back-office avance.
-        </p>
-      </div>
+    <div className="surface-card bg-[image:var(--gradient-primary)] p-6 text-primary-foreground sm:p-8">
+      <p className="font-display text-xl font-bold sm:text-2xl">Bienvenue, {user.name} 👋</p>
+      <p className="mt-1 text-sm text-primary-foreground/80">
+        Voici l&apos;espace d&apos;administration de Campus Print. Les modules ci-dessous seront
+        connectés à mesure que le back-office avance.
+      </p>
+    </div>
+  )
+}
 
-      {/* Les compteurs interrogent Supabase : ils sont streamés pour ne pas retarder la page. */}
+export default function DashboardPage() {
+  return (
+    <>
+      {/* Chaque bloc dépendant de la session est streamé séparément. */}
+      <Suspense
+        fallback={<div className="surface-card h-32 animate-pulse sm:h-36" />}
+      >
+        <WelcomeCard />
+      </Suspense>
+
       <Suspense fallback={<StatCardsSkeleton />}>
         <StatCards />
       </Suspense>

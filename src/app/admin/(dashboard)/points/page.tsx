@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
+import { TableSkeleton } from '@/components/ui/skeletons'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/dal'
 import { deletePrintPoint } from '@/features/print-points/actions'
@@ -12,10 +14,77 @@ export const metadata: Metadata = {
   title: "Sites d'impression",
 }
 
-export default async function AdminPointsPage() {
+async function SitesTable() {
   await requireUser()
   const sites = await getPrintPointsWithMachines()
 
+  return (
+    <div className="surface-card mt-6 overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-secondary/60 text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3 font-medium">Site</th>
+            <th className="px-4 py-3 font-medium">Adresse</th>
+            <th className="px-4 py-3 font-medium">Coordonnées</th>
+            <th className="px-4 py-3 font-medium">Machines</th>
+            <th className="px-4 py-3 font-medium">Statut</th>
+            <th className="px-4 py-3 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {sites.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                Aucun site pour le moment.
+              </td>
+            </tr>
+          )}
+
+          {sites.map((site) => (
+            <tr key={site.id_site}>
+              <td className="px-4 py-3 font-medium">{site.site_name}</td>
+              <td className="px-4 py-3 text-muted-foreground">{formatSiteAddress(site)}</td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {site.latitude !== null && site.longitude !== null ? (
+                  `${site.latitude.toFixed(5)}, ${site.longitude.toFixed(5)}`
+                ) : (
+                  <span className="text-destructive">Non renseignées</span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">{site.machinesActives}</td>
+              <td className="px-4 py-3">
+                <span
+                  className={cn(
+                    'rounded-full px-3 py-1 text-xs font-semibold',
+                    site.actif ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  {statusLabel(site.actif)}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-right whitespace-nowrap">
+                <Link
+                  href={`/admin/points/${site.id_site}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Modifier
+                </Link>
+                <form action={deletePrintPoint} className="inline">
+                  <input type="hidden" name="id_site" value={site.id_site} />
+                  <DeletePointButton />
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export default function AdminPointsPage() {
+  // L'en-tête ne dépend pas de la requête : il s'affiche immédiatement,
+  // le tableau est streamé derrière la frontière Suspense.
   return (
     <>
       <div className="flex items-center justify-between gap-4">
@@ -30,66 +99,9 @@ export default async function AdminPointsPage() {
         </Link>
       </div>
 
-      <div className="surface-card mt-6 overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Site</th>
-              <th className="px-4 py-3 font-medium">Adresse</th>
-              <th className="px-4 py-3 font-medium">Coordonnées</th>
-              <th className="px-4 py-3 font-medium">Machines</th>
-              <th className="px-4 py-3 font-medium">Statut</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {sites.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                  Aucun site pour le moment.
-                </td>
-              </tr>
-            )}
-
-            {sites.map((site) => (
-              <tr key={site.id_site}>
-                <td className="px-4 py-3 font-medium">{site.site_name}</td>
-                <td className="px-4 py-3 text-muted-foreground">{formatSiteAddress(site)}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {site.latitude !== null && site.longitude !== null ? (
-                    `${site.latitude.toFixed(5)}, ${site.longitude.toFixed(5)}`
-                  ) : (
-                    <span className="text-destructive">Non renseignées</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{site.machinesActives}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={cn(
-                      'rounded-full px-3 py-1 text-xs font-semibold',
-                      site.actif ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {statusLabel(site.actif)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <Link
-                    href={`/admin/points/${site.id_site}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    Modifier
-                  </Link>
-                  <form action={deletePrintPoint} className="inline">
-                    <input type="hidden" name="id_site" value={site.id_site} />
-                    <DeletePointButton />
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Suspense fallback={<TableSkeleton />}>
+        <SitesTable />
+      </Suspense>
     </>
   )
 }

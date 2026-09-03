@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { CardsSkeleton } from '@/components/ui/skeletons'
 import { requireUser } from '@/lib/dal'
 import { updatePrintPoint } from '@/features/print-points/actions'
 import { PrintPointForm } from '@/features/print-points/components/print-point-form'
@@ -10,10 +12,10 @@ export const metadata: Metadata = {
   title: 'Modifier un site',
 }
 
-export default async function EditPrintPointPage(props: PageProps<'/admin/points/[id]'>) {
+async function EditSiteForm({ params }: { params: Promise<{ id: string }> }) {
   await requireUser()
 
-  const { id } = await props.params
+  const { id } = await params
   const siteId = Number(id)
   if (!Number.isInteger(siteId)) notFound()
 
@@ -24,4 +26,12 @@ export default async function EditPrintPointPage(props: PageProps<'/admin/points
   const action = updatePrintPoint.bind(null, printPoint.id_site)
 
   return <PrintPointForm action={action} printPoint={printPoint} submitLabel="Mettre à jour" />
+}
+
+export default function EditPrintPointPage(props: PageProps<'/admin/points/[id]'>) {
+  return (
+    <Suspense fallback={<CardsSkeleton count={2} />}>
+      <EditSiteForm params={props.params} />
+    </Suspense>
+  )
 }
