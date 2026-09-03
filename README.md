@@ -18,14 +18,16 @@ qui fait évoluer une base existante sans perdre les sites déjà saisis. Cette
 migration **supprime les colonnes `hours` et `position`**, absentes du nouveau
 modèle — sauvegardez-les avant si vous y tenez. Enchaînez ensuite avec
 [`002_affectation_unique_machine.sql`](supabase/migrations/002_affectation_unique_machine.sql),
-qui interdit qu'une machine soit affectée à deux sites.
+qui interdit qu'une machine soit affectée à deux sites, puis
+[`003_machine_type_fonction.sql`](supabase/migrations/003_machine_type_fonction.sql),
+qui ajoute le format de papier et le rendu d'impression.
 
 ### Modèle de données
 
 | Table | Rôle |
 |---|---|
 | `print_points` | Un site : `id_site`, `site_name`, `site_address`, `city`, `country`, `latitude`, `longitude`, `actif` |
-| `machine` | Un photocopieur : `id_machine`, `serial_number`, `machine_name`, `mac_address`, `ip_address`, `date_acquisition`, `date_mise_service`, `actif` |
+| `machine` | Un photocopieur : `id_machine`, `serial_number`, `machine_name`, `mac_address`, `ip_address`, `type` (A4/A3), `fonction` (mono/couleur), `date_acquisition`, `date_mise_service`, `actif` |
 | `affectation` | Le lien entre une machine et le site où elle est installée |
 | `settings` | Tarifs, coordonnées de contact et statistiques éditables depuis l'admin |
 

@@ -8,6 +8,12 @@ import { FormToast } from '@/components/ui/form-toast'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState, type FormState } from '@/lib/form-state'
 import type { MachineWithSites } from '@/features/machines/queries'
+import {
+  MACHINE_FONCTION_LABELS,
+  MACHINE_TYPE_LABELS,
+  machineFonctions,
+  machineTypes,
+} from '@/features/machines/schema'
 
 const INPUT_CLASS =
   'mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 outline-none focus:border-primary'
@@ -58,6 +64,46 @@ export function MachineForm({ action, machine, submitLabel }: Props) {
               className={INPUT_CLASS}
             />
             <FieldError messages={state.errors?.machine_name} />
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="type" className="text-sm font-medium text-muted-foreground">
+                Type
+              </label>
+              <select
+                id="type"
+                name="type"
+                defaultValue={machine?.type ?? 'A4'}
+                className={INPUT_CLASS}
+              >
+                {machineTypes.map((value) => (
+                  <option key={value} value={value}>
+                    {MACHINE_TYPE_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+              <FieldError messages={state.errors?.type} />
+            </div>
+
+            <div>
+              <label htmlFor="fonction" className="text-sm font-medium text-muted-foreground">
+                Fonction
+              </label>
+              <select
+                id="fonction"
+                name="fonction"
+                defaultValue={machine?.fonction ?? 'mono'}
+                className={INPUT_CLASS}
+              >
+                {machineFonctions.map((value) => (
+                  <option key={value} value={value}>
+                    {MACHINE_FONCTION_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+              <FieldError messages={state.errors?.fonction} />
+            </div>
           </div>
 
           <div>

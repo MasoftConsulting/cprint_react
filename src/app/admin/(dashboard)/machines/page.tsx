@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/dal'
 import { deleteMachine } from '@/features/machines/actions'
 import { getMachines } from '@/features/machines/queries'
-import { formatDate, machineStatusLabel } from '@/features/machines/schema'
+import { formatDate, machineCapabilities, machineStatusLabel } from '@/features/machines/schema'
 import { DeleteMachineButton } from '@/features/machines/components/delete-machine-button'
 
 export const metadata: Metadata = {
@@ -25,6 +25,7 @@ async function MachinesTable() {
           <tr>
             <th className="px-4 py-3 font-medium">Machine</th>
             <th className="px-4 py-3 font-medium">N° de série</th>
+            <th className="px-4 py-3 font-medium">Capacités</th>
             <th className="px-4 py-3 font-medium">Réseau</th>
             <th className="px-4 py-3 font-medium">Mise en service</th>
             <th className="px-4 py-3 font-medium">Site</th>
@@ -35,7 +36,7 @@ async function MachinesTable() {
         <tbody className="divide-y divide-border">
           {machines.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+              <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                 Aucune machine pour le moment.
               </td>
             </tr>
@@ -45,6 +46,9 @@ async function MachinesTable() {
             <tr key={machine.id_machine}>
               <td className="px-4 py-3 font-medium">{machine.machine_name ?? '—'}</td>
               <td className="px-4 py-3 text-muted-foreground">{machine.serial_number}</td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {machineCapabilities(machine)}
+              </td>
               <td className="px-4 py-3 text-muted-foreground">
                 {machine.ip_address ?? '—'}
                 {machine.mac_address && (

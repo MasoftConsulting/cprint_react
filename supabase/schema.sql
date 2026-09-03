@@ -32,6 +32,11 @@ create table if not exists public.machine (
   machine_name      text,
   mac_address       text,
   ip_address        text,
+  -- Format de papier pris en charge et rendu d'impression. Une contrainte
+  -- CHECK plutôt qu'un type enum : ajouter une valeur plus tard ne demandera
+  -- qu'un ALTER de la contrainte.
+  type              text not null default 'A4' check (type in ('A4', 'A3')),
+  fonction          text not null default 'mono' check (fonction in ('mono', 'couleur')),
   date_acquisition  date,
   date_mise_service date,
   actif             boolean not null default true,

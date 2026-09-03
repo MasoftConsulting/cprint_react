@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import type { MachineFonction, MachineType } from '@/features/machines/schema'
 
 export const MACHINES_TAG = 'machines'
 
@@ -10,6 +11,8 @@ export type Machine = {
   machine_name: string | null
   mac_address: string | null
   ip_address: string | null
+  type: MachineType
+  fonction: MachineFonction
   date_acquisition: string | null
   date_mise_service: string | null
   actif: boolean
@@ -21,7 +24,7 @@ export type MachineWithSites = Machine & {
 }
 
 const COLUMNS =
-  'id_machine, serial_number, machine_name, mac_address, ip_address, date_acquisition, date_mise_service, actif'
+  'id_machine, serial_number, machine_name, mac_address, ip_address, type, fonction, date_acquisition, date_mise_service, actif'
 
 function normalize(row: Record<string, unknown>): Machine {
   const text = (value: unknown) => (value === null || value === undefined ? null : String(value))
@@ -32,6 +35,8 @@ function normalize(row: Record<string, unknown>): Machine {
     machine_name: text(row.machine_name),
     mac_address: text(row.mac_address),
     ip_address: text(row.ip_address),
+    type: row.type === 'A3' ? 'A3' : 'A4',
+    fonction: row.fonction === 'couleur' ? 'couleur' : 'mono',
     date_acquisition: text(row.date_acquisition),
     date_mise_service: text(row.date_mise_service),
     actif: row.actif === true,

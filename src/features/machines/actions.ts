@@ -23,6 +23,8 @@ function parse(formData: FormData) {
     machine_name: formData.get('machine_name'),
     mac_address: formData.get('mac_address'),
     ip_address: formData.get('ip_address'),
+    type: formData.get('type'),
+    fonction: formData.get('fonction'),
     date_acquisition: formData.get('date_acquisition'),
     date_mise_service: formData.get('date_mise_service'),
     actif: formData.get('actif'),

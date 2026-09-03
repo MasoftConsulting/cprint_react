@@ -16,6 +16,24 @@ const optionalDate = z.preprocess(
     .nullable(),
 )
 
+/** Format de papier pris en charge. */
+export const machineTypes = ['A4', 'A3'] as const
+export type MachineType = (typeof machineTypes)[number]
+
+/** Rendu d'impression. */
+export const machineFonctions = ['mono', 'couleur'] as const
+export type MachineFonction = (typeof machineFonctions)[number]
+
+export const MACHINE_TYPE_LABELS: Record<MachineType, string> = {
+  A4: 'A4',
+  A3: 'A3',
+}
+
+export const MACHINE_FONCTION_LABELS: Record<MachineFonction, string> = {
+  mono: 'Mono',
+  couleur: 'Couleur',
+}
+
 const MAC_PATTERN = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/
 const IPV4_PATTERN = /^(\d{1,3}\.){3}\d{1,3}$/
 
@@ -27,6 +45,8 @@ export const machineSchema = z
       s.regex(MAC_PATTERN, 'Format attendu : 00:1A:2B:3C:4D:5E.'),
     ),
     ip_address: optionalText(45, (s) => s.regex(IPV4_PATTERN, 'Format attendu : 192.168.1.10.')),
+    type: z.enum(machineTypes, { message: 'Choisissez un format.' }),
+    fonction: z.enum(machineFonctions, { message: 'Choisissez une fonction.' }),
     date_acquisition: optionalDate,
     date_mise_service: optionalDate,
     actif: z.preprocess(
@@ -56,6 +76,14 @@ export function machineLabel(machine: {
 
 export function machineStatusLabel(actif: boolean): string {
   return actif ? 'Active' : 'Hors service'
+}
+
+/** Résumé lisible des capacités : « A3 · Couleur ». */
+export function machineCapabilities(machine: {
+  type: MachineType
+  fonction: MachineFonction
+}): string {
+  return `${MACHINE_TYPE_LABELS[machine.type]} · ${MACHINE_FONCTION_LABELS[machine.fonction]}`
 }
 
 /** Formate une date ISO (`2026-09-03`) pour l'affichage en français. */
