@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CreditCard, FileText, MapPin, Menu, Printer, Server, Settings2, Zap } from 'lucide-react'
+import {
+  CreditCard,
+  FileText,
+  MapPin,
+  Menu,
+  Network,
+  Printer,
+  Server,
+  Settings2,
+  Zap,
+} from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import type { AdminUser } from '@/lib/dal'
@@ -13,6 +23,7 @@ const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Tableau de bord', Icon: Settings2 },
   { href: '/admin/points', label: 'Sites Campus', Icon: MapPin },
   { href: '/admin/machines', label: 'Machines', Icon: Server },
+  { href: '/admin/gestion', label: 'Gestion', Icon: Network },
   { href: '/admin/tarifs', label: 'Tarifs', Icon: CreditCard },
   { href: '/admin/parametres', label: 'Paramètres', Icon: Zap },
 ]
@@ -25,6 +36,7 @@ function resolvePageTitle(pathname: string): string {
   if (pathname === '/admin/machines/nouveau') return 'Ajouter une machine'
   if (pathname.startsWith('/admin/machines/')) return 'Modifier la machine'
   if (pathname.startsWith('/admin/machines')) return 'Parc de machines'
+  if (pathname.startsWith('/admin/gestion')) return 'Gestion des affectations'
   if (pathname.startsWith('/admin/tarifs')) return 'Tarifs'
   if (pathname.startsWith('/admin/parametres')) return 'Paramètres du site'
   if (pathname.startsWith('/admin/profil')) return 'Mon profil'

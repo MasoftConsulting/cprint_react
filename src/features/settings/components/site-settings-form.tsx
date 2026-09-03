@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import { FieldError } from '@/components/ui/field-error'
+import { FormToast } from '@/components/ui/form-toast'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState } from '@/lib/form-state'
 import { updateSiteSettings } from '@/features/settings/actions'
@@ -15,20 +16,12 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
   const [state, formAction] = useActionState(updateSiteSettings, initialFormState)
 
   return (
-    <form action={formAction} className="space-y-6">
-      {state.message && (
-        <div
-          className={
-            state.status === 'success'
-              ? 'max-w-2xl rounded-xl bg-success/10 px-4 py-3 text-sm text-success'
-              : 'max-w-2xl rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive'
-          }
-        >
-          {state.message}
-        </div>
-      )}
+    <form action={formAction}>
+      <FormToast state={state} />
 
-      <div className="surface-card max-w-2xl space-y-5 p-6 sm:p-8">
+      {/* Deux cartes par ligne à partir de `lg`, une seule sur mobile. */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <section className="surface-card space-y-5 p-6 sm:p-8">
         <h2 className="font-display text-lg font-bold">Coordonnées de contact</h2>
         <p className="text-sm text-muted-foreground">
           Affichées dans le pied de page de toutes les pages et sur la page Contact.
@@ -75,9 +68,9 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
           />
           <FieldError messages={state.errors?.contact_address} />
         </div>
-      </div>
+      </section>
 
-      <div className="surface-card max-w-2xl space-y-5 p-6 sm:p-8">
+      <section className="surface-card space-y-5 p-6 sm:p-8">
         <h2 className="font-display text-lg font-bold">Carte prépayée</h2>
         <p className="text-sm text-muted-foreground">
           Montants de recharge proposés sur la page Tarifs.
@@ -97,9 +90,9 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
           />
           <FieldError messages={state.errors?.recharge_amounts} />
         </div>
-      </div>
+      </section>
 
-      <div className="surface-card max-w-2xl space-y-5 p-6 sm:p-8">
+      <section className="surface-card space-y-5 p-6 sm:p-8">
         <h2 className="font-display text-lg font-bold">Statistiques de la page d&apos;accueil</h2>
         <p className="text-sm text-muted-foreground">
           Affichées dans le bandeau du hero, à côté du nombre de points actifs (calculé
@@ -140,9 +133,12 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
             <FieldError messages={state.errors?.payment_methods_count} />
           </div>
         </div>
+      </section>
       </div>
 
-      <SubmitButton pendingLabel="Enregistrement…">Enregistrer</SubmitButton>
+      <div className="mt-6">
+        <SubmitButton pendingLabel="Enregistrement…">Enregistrer</SubmitButton>
+      </div>
     </form>
   )
 }

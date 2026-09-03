@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 
 import { FieldError } from '@/components/ui/field-error'
+import { FormToast } from '@/components/ui/form-toast'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState, type FormState } from '@/lib/form-state'
 import type { MachineWithSites } from '@/features/machines/queries'
@@ -11,87 +12,79 @@ import type { MachineWithSites } from '@/features/machines/queries'
 const INPUT_CLASS =
   'mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 outline-none focus:border-primary'
 
-type SiteOption = {
-  id_site: number
-  site_name: string
-}
-
 type Props = {
   action: (state: FormState, formData: FormData) => Promise<FormState>
   machine?: MachineWithSites
-  sites: SiteOption[]
   submitLabel: string
 }
 
-export function MachineForm({ action, machine, sites, submitLabel }: Props) {
+export function MachineForm({ action, machine, submitLabel }: Props) {
   const [state, formAction] = useActionState(action, initialFormState)
-  const affectedSiteIds = new Set(machine?.sites.map((site) => site.id_site) ?? [])
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-6">
-      {state.status === 'error' && state.message && (
-        <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {state.message}
-        </div>
-      )}
+    <form action={formAction}>
+      <FormToast state={state} />
 
-      <div className="surface-card space-y-5 p-6 sm:p-8">
-        <h2 className="font-display text-lg font-bold">Identification</h2>
+      {/* Deux cartes par ligne à partir de `lg`, une seule sur mobile. */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className="surface-card space-y-5 p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Identification</h2>
 
-        <div>
-          <label htmlFor="serial_number" className="text-sm font-medium text-muted-foreground">
-            Numéro de série
-          </label>
-          <input
-            id="serial_number"
-            name="serial_number"
-            type="text"
-            defaultValue={machine?.serial_number}
-            placeholder="SHARP-MX3071-0042"
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.serial_number} />
-        </div>
+          <div>
+            <label htmlFor="serial_number" className="text-sm font-medium text-muted-foreground">
+              Numéro de série
+            </label>
+            <input
+              id="serial_number"
+              name="serial_number"
+              type="text"
+              defaultValue={machine?.serial_number}
+              placeholder="SHARP-MX3071-0042"
+              className={INPUT_CLASS}
+            />
+            <FieldError messages={state.errors?.serial_number} />
+          </div>
 
-        <div>
-          <label htmlFor="machine_name" className="text-sm font-medium text-muted-foreground">
-            Nom de la machine <span className="text-xs font-normal">(facultatif)</span>
-          </label>
-          <input
-            id="machine_name"
-            name="machine_name"
-            type="text"
-            defaultValue={machine?.machine_name ?? ''}
-            placeholder="Borne A — Bibliothèque"
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.machine_name} />
-        </div>
+          <div>
+            <label htmlFor="machine_name" className="text-sm font-medium text-muted-foreground">
+              Nom de la machine <span className="text-xs font-normal">(facultatif)</span>
+            </label>
+            <input
+              id="machine_name"
+              name="machine_name"
+              type="text"
+              defaultValue={machine?.machine_name ?? ''}
+              placeholder="Borne A — Bibliothèque"
+              className={INPUT_CLASS}
+            />
+            <FieldError messages={state.errors?.machine_name} />
+          </div>
 
-        <div>
-          <label htmlFor="actif" className="text-sm font-medium text-muted-foreground">
-            Statut
-          </label>
-          <select
-            id="actif"
-            name="actif"
-            defaultValue={machine ? String(machine.actif) : 'true'}
-            className={INPUT_CLASS}
-          >
-            <option value="true">Active</option>
-            <option value="false">Hors service</option>
-          </select>
-          <FieldError messages={state.errors?.actif} />
-        </div>
-      </div>
+          <div>
+            <label htmlFor="actif" className="text-sm font-medium text-muted-foreground">
+              Statut
+            </label>
+            <select
+              id="actif"
+              name="actif"
+              defaultValue={machine ? String(machine.actif) : 'true'}
+              className={INPUT_CLASS}
+            >
+              <option value="true">Active</option>
+              <option value="false">Hors service</option>
+            </select>
+            <FieldError messages={state.errors?.actif} />
+          </div>
+        </section>
 
-      <div className="surface-card space-y-5 p-6 sm:p-8">
-        <h2 className="font-display text-lg font-bold">Réseau</h2>
-        <p className="text-sm text-muted-foreground">
-          Facultatif — utile pour la supervision à distance du parc.
-        </p>
+        <section className="surface-card space-y-5 p-6 sm:p-8">
+          <div>
+            <h2 className="font-display text-lg font-bold">Réseau</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Facultatif — utile pour la supervision à distance du parc.
+            </p>
+          </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="mac_address" className="text-sm font-medium text-muted-foreground">
               Adresse MAC
@@ -106,6 +99,7 @@ export function MachineForm({ action, machine, sites, submitLabel }: Props) {
             />
             <FieldError messages={state.errors?.mac_address} />
           </div>
+
           <div>
             <label htmlFor="ip_address" className="text-sm font-medium text-muted-foreground">
               Adresse IP
@@ -120,13 +114,11 @@ export function MachineForm({ action, machine, sites, submitLabel }: Props) {
             />
             <FieldError messages={state.errors?.ip_address} />
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="surface-card space-y-5 p-6 sm:p-8">
-        <h2 className="font-display text-lg font-bold">Cycle de vie</h2>
+        <section className="surface-card space-y-5 p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Cycle de vie</h2>
 
-        <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label
               htmlFor="date_acquisition"
@@ -143,6 +135,7 @@ export function MachineForm({ action, machine, sites, submitLabel }: Props) {
             />
             <FieldError messages={state.errors?.date_acquisition} />
           </div>
+
           <div>
             <label
               htmlFor="date_mise_service"
@@ -159,48 +152,26 @@ export function MachineForm({ action, machine, sites, submitLabel }: Props) {
             />
             <FieldError messages={state.errors?.date_mise_service} />
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="surface-card space-y-5 p-6 sm:p-8">
-        <h2 className="font-display text-lg font-bold">Affectation</h2>
-        <p className="text-sm text-muted-foreground">
-          Sites sur lesquels cette machine est installée. Une machine peut en desservir plusieurs.
-        </p>
-
-        {sites.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Aucun site enregistré.{' '}
-            <Link href="/admin/points/nouveau" className="text-primary hover:underline">
-              Créez d&apos;abord un site
+        <section className="surface-card space-y-3 p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Affectation</h2>
+          <p className="text-sm text-muted-foreground">
+            L&apos;installation d&apos;une machine sur un site se fait depuis le module{' '}
+            <Link href="/admin/gestion" className="text-primary hover:underline">
+              Gestion
             </Link>
             .
           </p>
-        ) : (
-          <div className="space-y-2">
-            {sites.map((site) => (
-              <label
-                key={site.id_site}
-                htmlFor={`site-${site.id_site}`}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm hover:bg-accent"
-              >
-                <input
-                  id={`site-${site.id_site}`}
-                  type="checkbox"
-                  name="sites"
-                  value={site.id_site}
-                  defaultChecked={affectedSiteIds.has(site.id_site)}
-                  className="h-4 w-4 accent-[var(--primary)]"
-                />
-                {site.site_name}
-              </label>
-            ))}
-          </div>
-        )}
-        <FieldError messages={state.errors?.sites} />
+          <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm">
+            {machine?.sites.length
+              ? `Actuellement installée sur : ${machine.sites.map((site) => site.site_name).join(', ')}.`
+              : 'Cette machine n’est affectée à aucun site.'}
+          </p>
+        </section>
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="mt-6 flex justify-end gap-3">
         <Link
           href="/admin/machines"
           className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-medium"

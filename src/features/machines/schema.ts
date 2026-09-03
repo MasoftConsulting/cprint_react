@@ -33,8 +33,6 @@ export const machineSchema = z
       (value) => value === 'on' || value === 'true' || value === true,
       z.boolean(),
     ),
-    // Sites auxquels la machine est affectée (table `affectation`).
-    sites: z.array(z.coerce.number().int().positive()).default([]),
   })
   .superRefine((data, ctx) => {
     if (!data.date_acquisition || !data.date_mise_service) return

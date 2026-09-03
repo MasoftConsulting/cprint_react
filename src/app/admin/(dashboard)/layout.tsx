@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
 import { FlashToast } from '@/components/flash-toast'
+import { ToastProvider } from '@/components/ui/toast'
 import { requireUser } from '@/lib/dal'
 import { AdminShell } from '@/features/auth/components/admin-shell'
 
@@ -23,11 +24,14 @@ export default async function AdminDashboardLayout({
   const user = await requireUser()
 
   return (
-    <AdminShell user={user}>
-      <Suspense fallback={null}>
-        <FlashToast />
-      </Suspense>
-      {children}
-    </AdminShell>
+    <ToastProvider>
+      <AdminShell user={user}>
+        {/* `useSearchParams` impose une frontière Suspense. */}
+        <Suspense fallback={null}>
+          <FlashToast />
+        </Suspense>
+        {children}
+      </AdminShell>
+    </ToastProvider>
   )
 }

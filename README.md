@@ -16,7 +16,9 @@ la vue publique `site_machine_counts`, les politiques RLS et les valeurs par dé
 [`supabase/migrations/001_machines_et_sites.sql`](supabase/migrations/001_machines_et_sites.sql),
 qui fait évoluer une base existante sans perdre les sites déjà saisis. Cette
 migration **supprime les colonnes `hours` et `position`**, absentes du nouveau
-modèle — sauvegardez-les avant si vous y tenez.
+modèle — sauvegardez-les avant si vous y tenez. Enchaînez ensuite avec
+[`002_affectation_unique_machine.sql`](supabase/migrations/002_affectation_unique_machine.sql),
+qui interdit qu'une machine soit affectée à deux sites.
 
 ### Modèle de données
 
@@ -24,8 +26,13 @@ modèle — sauvegardez-les avant si vous y tenez.
 |---|---|
 | `print_points` | Un site : `id_site`, `site_name`, `site_address`, `city`, `country`, `latitude`, `longitude`, `actif` |
 | `machine` | Un photocopieur : `id_machine`, `serial_number`, `machine_name`, `mac_address`, `ip_address`, `date_acquisition`, `date_mise_service`, `actif` |
-| `affectation` | Le lien N-N entre une machine et les sites où elle est installée |
+| `affectation` | Le lien entre une machine et le site où elle est installée |
 | `settings` | Tarifs, coordonnées de contact et statistiques éditables depuis l'admin |
+
+Une machine n'équipe **qu'un seul site à la fois** : dès qu'elle est affectée,
+elle disparaît de la liste des machines disponibles. La règle est tenue par une
+contrainte d'unicité sur `affectation.id_machine`, pas seulement par le
+formulaire — deux onglets ouverts ne peuvent pas affecter la même machine.
 
 Le parc (`machine`, `affectation`) n'est **pas** lisible publiquement : un numéro
 de série ou une adresse IP n'ont rien à faire dans une réponse anonyme. La page
@@ -105,6 +112,7 @@ carte, saisie manuelle des coordonnées) continue de fonctionner.
 | `/admin/dashboard` | `/admin/dashboard` |
 | `print-points.*` | `/admin/points`, `/admin/points/nouveau`, `/admin/points/[id]` |
 | — (nouveau) | `/admin/machines`, `/admin/machines/nouveau`, `/admin/machines/[id]` |
+| — (nouveau) | `/admin/gestion` — affectation des machines aux sites |
 | `/admin/tarifs` | `/admin/tarifs` |
 | `/admin/parametres` | `/admin/parametres` |
 | `/admin/profil` | `/admin/profil` |
@@ -119,7 +127,8 @@ src/
 ├── features/              # organisé par domaine métier
 │   ├── auth/              # session, profil, coquille de l'admin
 │   ├── contact/           # formulaire de contact
-│   ├── machines/          # parc de photocopieurs et affectations
+│   ├── affectations/      # affectation d'une machine à un site
+│   ├── machines/          # parc de photocopieurs
 │   ├── print-points/      # sites d'impression (CRUD, carte Leaflet)
 │   └── settings/          # tarifs et paramètres du site
 ├── lib/

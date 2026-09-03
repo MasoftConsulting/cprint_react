@@ -5,6 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 import { FieldError } from '@/components/ui/field-error'
+import { FormToast } from '@/components/ui/form-toast'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState, type FormState } from '@/lib/form-state'
 import type { PrintPoint } from '@/features/print-points/queries'
@@ -36,99 +37,108 @@ export function PrintPointForm({ action, printPoint, submitLabel }: Props) {
   const [state, formAction] = useActionState(action, initialFormState)
 
   return (
-    <form action={formAction} className="surface-card max-w-2xl p-6 sm:p-8">
-      {state.status === 'error' && state.message && (
-        <div className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {state.message}
-        </div>
-      )}
+    <form action={formAction}>
+      <FormToast state={state} />
 
-      <div className="space-y-5">
-        <div>
-          <label htmlFor="site_name" className="text-sm font-medium text-muted-foreground">
-            Nom du site
-          </label>
-          <input
-            id="site_name"
-            name="site_name"
-            type="text"
-            defaultValue={printPoint?.site_name}
-            placeholder="Université de Lomé"
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.site_name} />
-        </div>
+      {/* Deux cartes par ligne à partir de `lg`, une seule sur mobile. */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <section className="surface-card space-y-5 p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Identification</h2>
 
-        <div>
-          <label htmlFor="site_address" className="text-sm font-medium text-muted-foreground">
-            Adresse <span className="text-xs font-normal">(facultatif)</span>
-          </label>
-          <input
-            id="site_address"
-            name="site_address"
-            type="text"
-            defaultValue={printPoint?.site_address ?? ''}
-            placeholder="Hall de la bibliothèque universitaire"
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.site_address} />
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="city" className="text-sm font-medium text-muted-foreground">
-              Ville <span className="text-xs font-normal">(facultatif)</span>
+            <label htmlFor="site_name" className="text-sm font-medium text-muted-foreground">
+              Nom du site
             </label>
             <input
-              id="city"
-              name="city"
+              id="site_name"
+              name="site_name"
               type="text"
-              defaultValue={printPoint?.city ?? ''}
-              placeholder="Lomé"
+              defaultValue={printPoint?.site_name}
+              placeholder="Université de Lomé"
               className={INPUT_CLASS}
             />
-            <FieldError messages={state.errors?.city} />
+            <FieldError messages={state.errors?.site_name} />
           </div>
+
           <div>
-            <label htmlFor="country" className="text-sm font-medium text-muted-foreground">
-              Pays
+            <label htmlFor="actif" className="text-sm font-medium text-muted-foreground">
+              Statut
+            </label>
+            <select
+              id="actif"
+              name="actif"
+              defaultValue={printPoint?.actif ? 'true' : 'false'}
+              className={INPUT_CLASS}
+            >
+              <option value="true">Actif</option>
+              <option value="false">Bientôt disponible</option>
+            </select>
+            <FieldError messages={state.errors?.actif} />
+          </div>
+        </section>
+
+        <section className="surface-card space-y-5 p-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Adresse</h2>
+
+          <div>
+            <label htmlFor="site_address" className="text-sm font-medium text-muted-foreground">
+              Adresse <span className="text-xs font-normal">(facultatif)</span>
             </label>
             <input
-              id="country"
-              name="country"
+              id="site_address"
+              name="site_address"
               type="text"
-              defaultValue={printPoint?.country ?? 'Togo'}
-              placeholder="Togo"
+              defaultValue={printPoint?.site_address ?? ''}
+              placeholder="Hall de la bibliothèque universitaire"
               className={INPUT_CLASS}
             />
-            <FieldError messages={state.errors?.country} />
+            <FieldError messages={state.errors?.site_address} />
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="actif" className="text-sm font-medium text-muted-foreground">
-            Statut
-          </label>
-          <select
-            id="actif"
-            name="actif"
-            defaultValue={printPoint?.actif ? 'true' : 'false'}
-            className={INPUT_CLASS}
-          >
-            <option value="true">Actif</option>
-            <option value="false">Bientôt disponible</option>
-          </select>
-          <FieldError messages={state.errors?.actif} />
-        </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="city" className="text-sm font-medium text-muted-foreground">
+                Ville <span className="text-xs font-normal">(facultatif)</span>
+              </label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                defaultValue={printPoint?.city ?? ''}
+                placeholder="Lomé"
+                className={INPUT_CLASS}
+              />
+              <FieldError messages={state.errors?.city} />
+            </div>
+            <div>
+              <label htmlFor="country" className="text-sm font-medium text-muted-foreground">
+                Pays
+              </label>
+              <input
+                id="country"
+                name="country"
+                type="text"
+                defaultValue={printPoint?.country ?? 'Togo'}
+                placeholder="Togo"
+                className={INPUT_CLASS}
+              />
+              <FieldError messages={state.errors?.country} />
+            </div>
+          </div>
+        </section>
 
-        <CoordinatesPicker
-          defaultLatitude={printPoint?.latitude ?? null}
-          defaultLongitude={printPoint?.longitude ?? null}
-          errors={{ latitude: state.errors?.latitude, longitude: state.errors?.longitude }}
-        />
+        {/* La carte occupe toute la largeur : elle ne se lit pas en demi-colonne. */}
+        <section className="surface-card p-6 sm:p-8 lg:col-span-2">
+          <h2 className="font-display text-lg font-bold">Localisation</h2>
+          <CoordinatesPicker
+            defaultLatitude={printPoint?.latitude ?? null}
+            defaultLongitude={printPoint?.longitude ?? null}
+            errors={{ latitude: state.errors?.latitude, longitude: state.errors?.longitude }}
+          />
+        </section>
       </div>
 
-      <div className="mt-8 flex justify-end gap-3">
+      <div className="mt-6 flex justify-end gap-3">
         <Link
           href="/admin/points"
           className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-medium"

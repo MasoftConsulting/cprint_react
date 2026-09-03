@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { cache } from 'react'
+import { cacheLife } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
@@ -12,10 +13,18 @@ export type AdminUser = {
 }
 
 /**
- * Utilisateur courant, ou `null`. Mémoïsé par rendu : appeler cette fonction
- * dans plusieurs composants ne déclenche qu'un seul aller-retour Supabase.
+ * Utilisateur courant, ou `null`.
+ *
+ * `use cache: private` donne une durée de vie à la lecture de session : le
+ * résultat reste dans la mémoire du navigateur (jamais sur le serveur) et
+ * Next.js peut préfetcher les pages d'admin au lieu de rejouer un aller-retour
+ * vers Supabase avant chaque rendu — c'est ce qui rendait la navigation lente.
+ * Le `cache()` de React déduplique en plus les appels d'un même rendu.
  */
 export const getCurrentUser = cache(async (): Promise<AdminUser | null> => {
+  'use cache: private'
+  cacheLife('minutes')
+
   const supabase = await createClient()
   // `getUser()` revalide le jeton auprès de Supabase, contrairement à
   // `getSession()` qui fait confiance au cookie : c'est la seule forme sûre côté serveur.

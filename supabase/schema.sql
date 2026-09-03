@@ -41,9 +41,10 @@ create table if not exists public.machine (
 
 -- ---------------------------------------------------------------------------
 -- Affectation d'une machine à un site
--- Table de jonction : le diagramme place 1..* de chaque côté, donc une même
--- machine peut être rattachée à plusieurs sites. La contrainte d'unicité
--- empêche seulement d'enregistrer deux fois le même couple.
+-- Table de jonction. Un site accueille plusieurs machines, mais une machine
+-- n'est installée que sur un seul site : dès qu'elle est affectée, elle n'est
+-- plus disponible. C'est la contrainte d'unicité sur `id_machine` qui le
+-- garantit, plutôt que le seul formulaire.
 -- ---------------------------------------------------------------------------
 create table if not exists public.affectation (
   id_affectation bigint generated always as identity primary key,
@@ -51,7 +52,9 @@ create table if not exists public.affectation (
   id_site        bigint not null references public.print_points (id_site) on delete cascade,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
-  unique (id_machine, id_site)
+  -- Une machine n'est installee que sur un site a la fois : une fois affectee,
+  -- elle n'est plus disponible pour un autre site.
+  unique (id_machine)
 );
 
 create index if not exists affectation_id_site_idx on public.affectation (id_site);
