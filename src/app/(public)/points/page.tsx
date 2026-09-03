@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { CtaBand } from '@/components/cta-band'
 import { PointsDirectory } from '@/features/print-points/components/points-directory'
-import { getPrintPoints } from '@/features/print-points/queries'
+import { getPrintPointsWithMachines } from '@/features/print-points/queries'
 
 export const metadata: Metadata = {
   title: 'Points Campus Print — Campus partenaires au Togo',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function PointsPage() {
-  const printPoints = await getPrintPoints()
+  const printPoints = await getPrintPointsWithMachines()
 
   return (
     <>

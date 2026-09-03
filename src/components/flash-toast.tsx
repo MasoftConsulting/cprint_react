@@ -8,9 +8,9 @@ import { useSearchParams } from 'next/navigation'
  * redirigent avec `?flash=…` après une mutation réussie.
  */
 const MESSAGES: Record<string, string> = {
-  created: "Point d'impression ajouté avec succès.",
-  updated: "Point d'impression mis à jour.",
-  deleted: "Point d'impression supprimé.",
+  created: 'Enregistrement ajouté avec succès.',
+  updated: 'Enregistrement mis à jour.',
+  deleted: 'Enregistrement supprimé.',
 }
 
 function Toast({ message }: { message: string }) {

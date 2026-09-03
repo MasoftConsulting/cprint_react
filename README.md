@@ -9,8 +9,27 @@ Supabase comme base de données. Le design est repris à l'identique.
 
 Sur [supabase.com](https://supabase.com), créez un projet, puis ouvrez
 **SQL Editor** et exécutez le contenu de [`supabase/schema.sql`](supabase/schema.sql).
-Ce script crée les tables `print_points` et `settings`, les politiques RLS
-(lecture publique, écriture authentifiée) et insère les valeurs par défaut.
+Ce script crée les tables `print_points`, `machine`, `affectation` et `settings`,
+la vue publique `site_machine_counts`, les politiques RLS et les valeurs par défaut.
+
+**Base déjà en service ?** N'exécutez pas `schema.sql` : lancez plutôt
+[`supabase/migrations/001_machines_et_sites.sql`](supabase/migrations/001_machines_et_sites.sql),
+qui fait évoluer une base existante sans perdre les sites déjà saisis. Cette
+migration **supprime les colonnes `hours` et `position`**, absentes du nouveau
+modèle — sauvegardez-les avant si vous y tenez.
+
+### Modèle de données
+
+| Table | Rôle |
+|---|---|
+| `print_points` | Un site : `id_site`, `site_name`, `site_address`, `city`, `country`, `latitude`, `longitude`, `actif` |
+| `machine` | Un photocopieur : `id_machine`, `serial_number`, `machine_name`, `mac_address`, `ip_address`, `date_acquisition`, `date_mise_service`, `actif` |
+| `affectation` | Le lien N-N entre une machine et les sites où elle est installée |
+| `settings` | Tarifs, coordonnées de contact et statistiques éditables depuis l'admin |
+
+Le parc (`machine`, `affectation`) n'est **pas** lisible publiquement : un numéro
+de série ou une adresse IP n'ont rien à faire dans une réponse anonyme. La page
+publique affiche « N machines » via la vue agrégée `site_machine_counts`.
 
 ### 2. Renseigner les variables d'environnement
 
@@ -85,6 +104,7 @@ carte, saisie manuelle des coordonnées) continue de fonctionner.
 | `/admin` (connexion) | `/admin` |
 | `/admin/dashboard` | `/admin/dashboard` |
 | `print-points.*` | `/admin/points`, `/admin/points/nouveau`, `/admin/points/[id]` |
+| — (nouveau) | `/admin/machines`, `/admin/machines/nouveau`, `/admin/machines/[id]` |
 | `/admin/tarifs` | `/admin/tarifs` |
 | `/admin/parametres` | `/admin/parametres` |
 | `/admin/profil` | `/admin/profil` |
@@ -99,7 +119,8 @@ src/
 ├── features/              # organisé par domaine métier
 │   ├── auth/              # session, profil, coquille de l'admin
 │   ├── contact/           # formulaire de contact
-│   ├── print-points/      # points d'impression (CRUD, carte Leaflet)
+│   ├── machines/          # parc de photocopieurs et affectations
+│   ├── print-points/      # sites d'impression (CRUD, carte Leaflet)
 │   └── settings/          # tarifs et paramètres du site
 ├── lib/
 │   ├── dal.ts             # accès aux données + autorisation
@@ -122,3 +143,7 @@ immédiatement sur le site.
   dans le projet d'origine, non implémentés ici non plus.
 - **Mot de passe oublié** : lien présent sur la page de connexion Laravel, sans
   page cible ; il n'a pas été repris.
+- **Horaires d'ouverture** : la colonne `hours` du modèle Laravel n'existe pas
+  dans le diagramme de classes, elle a donc disparu de la base et de la fiche
+  publique d'un site. Si vous voulez les réafficher, il faut rajouter la colonne
+  au diagramme et au schéma.

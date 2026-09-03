@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Clock, MapPin } from 'lucide-react'
+import { MapPin, Printer } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
-import type { PrintPoint } from '@/features/print-points/queries'
-import { statusLabel } from '@/features/print-points/schema'
+import type { PrintPointWithMachines } from '@/features/print-points/queries'
+import { formatSiteAddress, statusLabel } from '@/features/print-points/schema'
 
 // Leaflet manipule `window` : il ne doit pas être rendu côté serveur.
 const PointsMap = dynamic(
@@ -28,7 +28,7 @@ function haversineKm(from: Coords, to: Coords): number {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-export function PointsDirectory({ points }: { points: PrintPoint[] }) {
+export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }) {
   const [position, setPosition] = useState<Coords | null>(null)
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,16 +38,16 @@ export function PointsDirectory({ points }: { points: PrintPoint[] }) {
       points
         .filter((point) => point.latitude !== null && point.longitude !== null)
         .map((point) => ({
-          id: point.id,
-          name: point.name,
-          location: point.location,
+          id_site: point.id_site,
+          site_name: point.site_name,
+          address: formatSiteAddress(point),
           latitude: point.latitude as number,
           longitude: point.longitude as number,
         })),
     [points],
   )
 
-  // Les points sans coordonnées restent en fin de liste une fois l'utilisateur localisé.
+  // Les sites sans coordonnées restent en fin de liste une fois l'utilisateur localisé.
   const orderedPoints = useMemo(() => {
     const withDistance = points.map((point) => ({
       point,
@@ -131,27 +131,29 @@ export function PointsDirectory({ points }: { points: PrintPoint[] }) {
           )}
 
           {orderedPoints.map(({ point, distance }) => (
-            <div key={point.id} className="surface-card p-6">
+            <div key={point.id_site} className="surface-card p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="font-display text-lg font-bold">{point.name}</h2>
+                <h2 className="font-display text-lg font-bold">{point.site_name}</h2>
                 <span
                   className={cn(
                     'shrink-0 rounded-full px-3 py-1 text-xs font-semibold',
-                    point.status === 'actif'
+                    point.actif
                       ? 'bg-success/10 text-success'
                       : 'bg-muted text-muted-foreground',
                   )}
                 >
-                  {statusLabel(point.status)}
+                  {statusLabel(point.actif)}
                 </span>
               </div>
               <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 text-primary" aria-hidden />
-                {point.location}
+                <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                {formatSiteAddress(point)}
               </p>
               <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4 text-primary" aria-hidden />
-                {point.hours}
+                <Printer className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                {point.machinesActives === 0
+                  ? 'Aucune machine installée'
+                  : `${point.machinesActives} machine${point.machinesActives > 1 ? 's' : ''} disponible${point.machinesActives > 1 ? 's' : ''}`}
               </p>
 
               {distance !== null && (

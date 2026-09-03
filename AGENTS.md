@@ -21,6 +21,10 @@ Lis-la avant d'utiliser une API dont tu n'es pas certain — ne code pas de mém
   de la session et bloquent volontairement côté serveur.
 - Toute page et toute Server Action de l'espace admin appelle `requireUser()`
   (`src/lib/dal.ts`). `src/proxy.ts` n'est qu'une redirection optimiste.
+- Modele de donnees : `print_points` (sites), `machine` (parc), `affectation`
+  (lien N-N), `settings`. Les cles primaires sont `id_site` et `id_machine`.
+  Le parc n'est jamais lisible publiquement : la page publique passe par la vue
+  agregee `site_machine_counts`.
 - Organisation par domaine dans `src/features/<domaine>/` :
   `queries.ts` (`server-only`), `actions.ts` (`'use server'`), `schema.ts` (Zod),
   `components/`. `src/components/` ne contient que des primitives génériques.

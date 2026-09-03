@@ -7,23 +7,21 @@ import { PrintPointForm } from '@/features/print-points/components/print-point-f
 import { findPrintPoint } from '@/features/print-points/queries'
 
 export const metadata: Metadata = {
-  title: "Modifier un point d'impression",
+  title: 'Modifier un site',
 }
 
 export default async function EditPrintPointPage(props: PageProps<'/admin/points/[id]'>) {
   await requireUser()
 
   const { id } = await props.params
-  const printPointId = Number(id)
-  if (!Number.isInteger(printPointId)) notFound()
+  const siteId = Number(id)
+  if (!Number.isInteger(siteId)) notFound()
 
-  const printPoint = await findPrintPoint(printPointId)
+  const printPoint = await findPrintPoint(siteId)
   if (!printPoint) notFound()
 
   // `bind` fige l'identifiant côté serveur : le client ne peut pas le remplacer.
-  const action = updatePrintPoint.bind(null, printPoint.id)
+  const action = updatePrintPoint.bind(null, printPoint.id_site)
 
-  return (
-    <PrintPointForm action={action} printPoint={printPoint} submitLabel="Mettre à jour" />
-  )
+  return <PrintPointForm action={action} printPoint={printPoint} submitLabel="Mettre à jour" />
 }

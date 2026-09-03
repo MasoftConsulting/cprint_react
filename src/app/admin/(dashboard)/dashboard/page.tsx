@@ -1,33 +1,26 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Clock, CreditCard, FileText, MapPin, Smartphone } from 'lucide-react'
+import { Clock, CreditCard, FileText, MapPin, Server } from 'lucide-react'
 
 import { requireUser } from '@/lib/dal'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { getActiveMachinesCount } from '@/features/machines/queries'
 import { getActivePrintPointsCount } from '@/features/print-points/queries'
 
 export const metadata: Metadata = {
   title: 'Tableau de bord',
 }
 
-/** Nombre de comptes Supabase Auth — nécessite la clé de service. */
-async function countUsers(): Promise<number | null> {
-  const supabase = createAdminClient()
-  if (!supabase) return null
-
-  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 })
-  if (error) return null
-  return data.total ?? data.users.length
-}
-
 async function StatCards() {
-  const [activePoints, users] = await Promise.all([getActivePrintPointsCount(), countUsers()])
+  const [activeSites, activeMachines] = await Promise.all([
+    getActivePrintPointsCount(),
+    getActiveMachinesCount(),
+  ])
 
   const stats = [
     { Icon: FileText, label: 'Commandes du jour', value: '—' },
     { Icon: CreditCard, label: "Chiffre d'affaires", value: '0 FCFA' },
-    { Icon: MapPin, label: 'Points actifs', value: activePoints },
-    { Icon: Smartphone, label: 'Utilisateurs', value: users ?? '—' },
+    { Icon: MapPin, label: 'Sites actifs', value: activeSites },
+    { Icon: Server, label: 'Machines actives', value: activeMachines },
   ]
 
   return (
@@ -82,7 +75,7 @@ export default async function DashboardPage() {
           </span>
           <p className="mt-4 font-medium">Aucune donnée pour l&apos;instant</p>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Les commandes, points d&apos;impression et statistiques apparaîtront ici une fois le
+            Les commandes et statistiques d&apos;impression apparaîtront ici une fois le
             back-office branché sur cette interface.
           </p>
         </div>

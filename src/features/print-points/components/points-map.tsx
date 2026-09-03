@@ -3,15 +3,16 @@
 import { useEffect, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 
-import type { PrintPoint } from '@/features/print-points/queries'
-
-type MapPoint = Pick<PrintPoint, 'id' | 'name' | 'location'> & {
+type MapPoint = {
+  id_site: number
+  site_name: string
+  address: string
   latitude: number
   longitude: number
 }
 
 /**
- * Carte des points d'impression (Leaflet + tuiles OpenStreetMap).
+ * Carte des sites d'impression (Leaflet + tuiles OpenStreetMap).
  * Leaflet touche directement au DOM : il est chargé à la volée côté navigateur.
  */
 export function PointsMap({ points }: { points: MapPoint[] }) {
@@ -40,7 +41,9 @@ export function PointsMap({ points }: { points: MapPoint[] }) {
       for (const point of points) {
         L.marker([point.latitude, point.longitude])
           .addTo(map)
-          .bindPopup(`<strong>${escapeHtml(point.name)}</strong><br>${escapeHtml(point.location)}`)
+          .bindPopup(
+            `<strong>${escapeHtml(point.site_name)}</strong><br>${escapeHtml(point.address)}`,
+          )
         bounds.push([point.latitude, point.longitude])
       }
 

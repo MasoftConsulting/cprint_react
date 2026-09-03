@@ -45,79 +45,80 @@ export function PrintPointForm({ action, printPoint, submitLabel }: Props) {
 
       <div className="space-y-5">
         <div>
-          <label htmlFor="name" className="text-sm font-medium text-muted-foreground">
-            Nom du point
+          <label htmlFor="site_name" className="text-sm font-medium text-muted-foreground">
+            Nom du site
           </label>
           <input
-            id="name"
-            name="name"
+            id="site_name"
+            name="site_name"
             type="text"
-            defaultValue={printPoint?.name}
+            defaultValue={printPoint?.site_name}
             placeholder="Université de Lomé"
             className={INPUT_CLASS}
           />
-          <FieldError messages={state.errors?.name} />
+          <FieldError messages={state.errors?.site_name} />
         </div>
 
         <div>
-          <label htmlFor="location" className="text-sm font-medium text-muted-foreground">
-            Emplacement
+          <label htmlFor="site_address" className="text-sm font-medium text-muted-foreground">
+            Adresse <span className="text-xs font-normal">(facultatif)</span>
           </label>
           <input
-            id="location"
-            name="location"
+            id="site_address"
+            name="site_address"
             type="text"
-            defaultValue={printPoint?.location}
-            placeholder="Hall de la bibliothèque universitaire · Lomé"
+            defaultValue={printPoint?.site_address ?? ''}
+            placeholder="Hall de la bibliothèque universitaire"
             className={INPUT_CLASS}
           />
-          <FieldError messages={state.errors?.location} />
+          <FieldError messages={state.errors?.site_address} />
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="city" className="text-sm font-medium text-muted-foreground">
+              Ville <span className="text-xs font-normal">(facultatif)</span>
+            </label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              defaultValue={printPoint?.city ?? ''}
+              placeholder="Lomé"
+              className={INPUT_CLASS}
+            />
+            <FieldError messages={state.errors?.city} />
+          </div>
+          <div>
+            <label htmlFor="country" className="text-sm font-medium text-muted-foreground">
+              Pays
+            </label>
+            <input
+              id="country"
+              name="country"
+              type="text"
+              defaultValue={printPoint?.country ?? 'Togo'}
+              placeholder="Togo"
+              className={INPUT_CLASS}
+            />
+            <FieldError messages={state.errors?.country} />
+          </div>
         </div>
 
         <div>
-          <label htmlFor="hours" className="text-sm font-medium text-muted-foreground">
-            Horaires
-          </label>
-          <input
-            id="hours"
-            name="hours"
-            type="text"
-            defaultValue={printPoint?.hours}
-            placeholder="Lun – Sam · 7h – 20h"
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.hours} />
-        </div>
-
-        <div>
-          <label htmlFor="status" className="text-sm font-medium text-muted-foreground">
+          <label htmlFor="actif" className="text-sm font-medium text-muted-foreground">
             Statut
           </label>
           <select
-            id="status"
-            name="status"
-            defaultValue={printPoint?.status ?? 'bientot'}
+            id="actif"
+            name="actif"
+            defaultValue={printPoint?.actif ? 'true' : 'false'}
             className={INPUT_CLASS}
           >
-            <option value="actif">Actif</option>
-            <option value="bientot">Bientôt disponible</option>
+            <option value="true">Actif</option>
+            <option value="false">Bientôt disponible</option>
           </select>
-          <FieldError messages={state.errors?.status} />
-        </div>
-
-        <div>
-          <label htmlFor="position" className="text-sm font-medium text-muted-foreground">
-            Ordre d&apos;affichage
-          </label>
-          <input
-            id="position"
-            name="position"
-            type="number"
-            min={0}
-            defaultValue={printPoint?.position ?? 0}
-            className={INPUT_CLASS}
-          />
-          <FieldError messages={state.errors?.position} />
+          <FieldError messages={state.errors?.actif} />
         </div>
 
         <CoordinatesPicker

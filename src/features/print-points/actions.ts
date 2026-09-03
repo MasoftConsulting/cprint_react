@@ -15,15 +15,17 @@ const UNIQUE_VIOLATION = '23505'
 
 function parse(formData: FormData) {
   return printPointSchema.safeParse({
-    name: formData.get('name'),
-    location: formData.get('location'),
-    hours: formData.get('hours'),
-    status: formData.get('status'),
+    site_name: formData.get('site_name'),
+    site_address: formData.get('site_address'),
+    city: formData.get('city'),
+    country: formData.get('country'),
     latitude: formData.get('latitude'),
     longitude: formData.get('longitude'),
-    position: formData.get('position') ?? 0,
+    actif: formData.get('actif'),
   })
 }
+
+const DUPLICATE_NAME = { site_name: ['Un site avec ce nom existe déjà.'] }
 
 export async function createPrintPoint(
   _prevState: FormState,
@@ -41,12 +43,9 @@ export async function createPrintPoint(
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
-      return {
-        status: 'error',
-        errors: { name: ["Un point d'impression avec ce nom existe déjà."] },
-      }
+      return { status: 'error', errors: DUPLICATE_NAME }
     }
-    return { status: 'error', message: "Impossible d'enregistrer ce point d'impression." }
+    return { status: 'error', message: "Impossible d'enregistrer ce site." }
   }
 
   updateTag(PRINT_POINTS_TAG)
@@ -55,7 +54,7 @@ export async function createPrintPoint(
 }
 
 export async function updatePrintPoint(
-  id: number,
+  idSite: number,
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -67,16 +66,16 @@ export async function updatePrintPoint(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('print_points').update(parsed.data).eq('id', id)
+  const { error } = await supabase
+    .from('print_points')
+    .update(parsed.data)
+    .eq('id_site', idSite)
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
-      return {
-        status: 'error',
-        errors: { name: ["Un point d'impression avec ce nom existe déjà."] },
-      }
+      return { status: 'error', errors: DUPLICATE_NAME }
     }
-    return { status: 'error', message: 'Impossible de mettre à jour ce point.' }
+    return { status: 'error', message: 'Impossible de mettre à jour ce site.' }
   }
 
   updateTag(PRINT_POINTS_TAG)
@@ -86,11 +85,12 @@ export async function updatePrintPoint(
 export async function deletePrintPoint(formData: FormData): Promise<void> {
   await requireUser()
 
-  const id = Number(formData.get('id'))
-  if (!Number.isInteger(id)) return
+  const idSite = Number(formData.get('id_site'))
+  if (!Number.isInteger(idSite)) return
 
   const supabase = await createClient()
-  await supabase.from('print_points').delete().eq('id', id)
+  // Les affectations liées partent en cascade (contrainte de clé étrangère).
+  await supabase.from('print_points').delete().eq('id_site', idSite)
 
   updateTag(PRINT_POINTS_TAG)
   redirect('/admin/points?flash=deleted')

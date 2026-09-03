@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CreditCard, FileText, MapPin, Menu, Printer, Settings2, Zap } from 'lucide-react'
+import { CreditCard, FileText, MapPin, Menu, Printer, Server, Settings2, Zap } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import type { AdminUser } from '@/lib/dal'
@@ -11,16 +11,20 @@ import { logout } from '@/features/auth/actions'
 
 const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Tableau de bord', Icon: Settings2 },
-  { href: '/admin/points', label: 'Points Campus', Icon: MapPin },
+  { href: '/admin/points', label: 'Sites Campus', Icon: MapPin },
+  { href: '/admin/machines', label: 'Machines', Icon: Server },
   { href: '/admin/tarifs', label: 'Tarifs', Icon: CreditCard },
   { href: '/admin/parametres', label: 'Paramètres', Icon: Zap },
 ]
 
 /** Titre affiché dans l'en-tête, dérivé de l'URL (équivalent de `@section('page-title')`). */
 function resolvePageTitle(pathname: string): string {
-  if (pathname === '/admin/points/nouveau') return "Ajouter un point d'impression"
-  if (pathname.startsWith('/admin/points/')) return "Modifier le point d'impression"
-  if (pathname.startsWith('/admin/points')) return "Points d'impression"
+  if (pathname === '/admin/points/nouveau') return "Ajouter un site d'impression"
+  if (pathname.startsWith('/admin/points/')) return "Modifier le site d'impression"
+  if (pathname.startsWith('/admin/points')) return "Sites d'impression"
+  if (pathname === '/admin/machines/nouveau') return 'Ajouter une machine'
+  if (pathname.startsWith('/admin/machines/')) return 'Modifier la machine'
+  if (pathname.startsWith('/admin/machines')) return 'Parc de machines'
   if (pathname.startsWith('/admin/tarifs')) return 'Tarifs'
   if (pathname.startsWith('/admin/parametres')) return 'Paramètres du site'
   if (pathname.startsWith('/admin/profil')) return 'Mon profil'
