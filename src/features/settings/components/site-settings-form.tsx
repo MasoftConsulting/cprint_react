@@ -71,6 +71,29 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
       </section>
 
       <section className="surface-card space-y-5 p-6 sm:p-8">
+        <h2 className="font-display text-lg font-bold">Alertes par e-mail</h2>
+        <p className="text-sm text-muted-foreground">
+          Adresse prévenue à chaque message reçu depuis la page Contact. Laissez vide pour utiliser
+          l&apos;adresse de contact ci-contre.
+        </p>
+
+        <div>
+          <label htmlFor="notification_email" className="text-sm font-medium text-muted-foreground">
+            Adresse de notification
+          </label>
+          <input
+            id="notification_email"
+            name="notification_email"
+            type="email"
+            defaultValue={settings.notification_email}
+            placeholder={settings.contact_email}
+            className={INPUT_CLASS}
+          />
+          <FieldError messages={state.errors?.notification_email} />
+        </div>
+      </section>
+
+      <section className="surface-card space-y-5 p-6 sm:p-8">
         <h2 className="font-display text-lg font-bold">Carte prépayée</h2>
         <p className="text-sm text-muted-foreground">
           Montants de recharge proposés sur la page Tarifs.

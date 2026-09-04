@@ -11,6 +11,8 @@ export const siteSettingsSchema = z.object({
   contact_phone: z.string().trim().min(1, 'Champ obligatoire.').max(30),
   contact_email: z.email('Adresse e-mail invalide.').max(255),
   contact_address: z.string().trim().min(1, 'Champ obligatoire.').max(255),
+  // Facultative : vide, les alertes partent vers `contact_email`.
+  notification_email: z.union([z.literal(''), z.email('Adresse e-mail invalide.').max(255)]),
   recharge_amounts: z
     .string()
     .trim()

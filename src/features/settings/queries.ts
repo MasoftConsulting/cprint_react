@@ -13,6 +13,8 @@ const DEFAULTS = {
   contact_phone: '+228 91 35 00 00',
   contact_email: 'support@masoft-consulting.com',
   contact_address: 'Lomé, Togo',
+  // Vide par défaut : on retombe alors sur `contact_email`.
+  notification_email: '',
   recharge_amounts: '500,1000,2000,5000',
   avg_print_time: '3 min',
   payment_methods_count: '3',

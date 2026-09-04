@@ -103,6 +103,37 @@ Sans HTTPS, les boutons « Trouver le point le plus proche » et « Utiliser ma
 position actuelle » affichent un message l'expliquant — le reste (clic sur la
 carte, saisie manuelle des coordonnées) continue de fonctionner.
 
+## Alertes e-mail des messages de contact
+
+Chaque message déposé sur la page Contact peut déclencher un e-mail vers votre
+boîte. L'envoi passe par SMTP : n'importe quel fournisseur convient (Resend,
+Brevo, Gmail / Google Workspace, Office 365, ou le serveur de votre hébergeur),
+et en changer ne demande aucune modification de code.
+
+Renseignez ces variables dans `.env.local` **et** dans Vercel
+(Project Settings → Environment Variables) :
+
+```bash
+SMTP_HOST=smtp.exemple.com
+SMTP_PORT=587           # 465 pour du TLS implicite
+SMTP_USER=alertes@masoft-consulting.com
+SMTP_PASSWORD=...
+SMTP_FROM=              # vide : on reprend SMTP_USER
+NEXT_PUBLIC_SITE_URL=https://cprint-react.vercel.app
+```
+
+L'adresse **destinataire** ne se met pas dans l'environnement : elle se règle
+depuis `/admin/parametres`, section « Alertes par e-mail ». Laissée vide, les
+alertes partent vers l'adresse de contact du site.
+
+Deux garde-fous à connaître :
+
+- L'e-mail est envoyé **après** la réponse au visiteur (`after()` de Next.js).
+  Le formulaire ne ralentit donc pas si le serveur SMTP est lent.
+- Un envoi qui échoue est journalisé côté serveur mais **ne remet jamais en
+  cause le message**, déjà enregistré en base. Sans configuration SMTP, le site
+  fonctionne normalement : seul l'e-mail est ignoré.
+
 ## Correspondance des routes
 
 | Laravel | Next.js |
@@ -154,10 +185,6 @@ immédiatement sur le site.
 
 ## Ce qui reste à brancher
 
-- **Notification par e-mail des nouveaux messages** : les demandes sont
-  enregistrées en base et consultables dans `/admin/messages`, mais aucun e-mail
-  n'est envoyé à l'équipe. Il faut brancher un service d'envoi dans
-  `src/features/contact/actions.ts`.
 - **Commandes / chiffre d'affaires** du tableau de bord : marqués « Bientôt »
   dans le projet d'origine, non implémentés ici non plus.
 - **Mot de passe oublié** : lien présent sur la page de connexion Laravel, sans

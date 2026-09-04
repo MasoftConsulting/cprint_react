@@ -1,5 +1,6 @@
 'use server'
 
+import { after } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -7,6 +8,7 @@ import { requireUser } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
 import { contactSchema } from '@/features/contact/schema'
+import { notifyNewContactMessage } from '@/features/contact/notification'
 
 export async function sendContactMessage(
   _prevState: FormState,
@@ -34,6 +36,10 @@ export async function sendContactMessage(
       message: "Votre message n'a pas pu être envoyé. Réessayez dans un instant.",
     }
   }
+
+  // L'alerte part une fois la réponse rendue : le visiteur n'attend pas le
+  // serveur SMTP, et un envoi raté ne remet pas en cause son message déjà stocké.
+  after(() => notifyNewContactMessage(parsed.data))
 
   return {
     status: 'success',
