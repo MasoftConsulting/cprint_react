@@ -77,6 +77,41 @@ create table if not exists public.settings (
 );
 
 -- ---------------------------------------------------------------------------
+-- FAQ affichée sur le site public
+-- `page` désigne la page qui montre la question. Contrainte CHECK plutôt qu'un
+-- type enum : ajouter une page plus tard ne demandera qu'un ALTER.
+-- ---------------------------------------------------------------------------
+create table if not exists public.faq (
+  id_faq     bigint generated always as identity primary key,
+  page       text not null check (page in ('comment-ca-marche', 'tarifs')),
+  question   text not null,
+  reponse    text not null,
+  position   integer not null default 0,
+  actif      boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists faq_page_position_idx on public.faq (page, position);
+
+-- ---------------------------------------------------------------------------
+-- Messages déposés par le formulaire de contact
+-- ---------------------------------------------------------------------------
+create table if not exists public.contact_messages (
+  id_message bigint generated always as identity primary key,
+  nom        text not null,
+  email      text not null,
+  telephone  text,
+  message    text not null,
+  lu         boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists contact_messages_created_at_idx
+  on public.contact_messages (created_at desc);
+
+-- ---------------------------------------------------------------------------
 -- `updated_at` tenu à jour automatiquement
 -- ---------------------------------------------------------------------------
 create or replace function public.touch_updated_at()
@@ -109,6 +144,16 @@ create trigger settings_touch_updated_at
   before update on public.settings
   for each row execute function public.touch_updated_at();
 
+drop trigger if exists faq_touch_updated_at on public.faq;
+create trigger faq_touch_updated_at
+  before update on public.faq
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists contact_messages_touch_updated_at on public.contact_messages;
+create trigger contact_messages_touch_updated_at
+  before update on public.contact_messages
+  for each row execute function public.touch_updated_at();
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- Les sites sont publics (site vitrine). Le parc de machines et les
@@ -120,6 +165,8 @@ alter table public.print_points enable row level security;
 alter table public.machine enable row level security;
 alter table public.affectation enable row level security;
 alter table public.settings enable row level security;
+alter table public.faq enable row level security;
+alter table public.contact_messages enable row level security;
 
 drop policy if exists "print_points lecture publique" on public.print_points;
 create policy "print_points lecture publique"
@@ -177,6 +224,46 @@ with (security_invoker = off) as
    group by p.id_site;
 
 grant select on public.site_machine_counts to anon, authenticated;
+
+drop policy if exists "faq lecture publique" on public.faq;
+create policy "faq lecture publique"
+  on public.faq for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "faq écriture authentifiée" on public.faq;
+create policy "faq écriture authentifiée"
+  on public.faq for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Le formulaire public doit pouvoir déposer un message, mais un visiteur ne
+-- doit jamais pouvoir lire ceux des autres : insertion seule pour `anon`.
+drop policy if exists "contact_messages dépôt public" on public.contact_messages;
+create policy "contact_messages dépôt public"
+  on public.contact_messages for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "contact_messages lecture authentifiée" on public.contact_messages;
+create policy "contact_messages lecture authentifiée"
+  on public.contact_messages for select
+  to authenticated
+  using (true);
+
+drop policy if exists "contact_messages gestion authentifiée" on public.contact_messages;
+create policy "contact_messages gestion authentifiée"
+  on public.contact_messages for update
+  to authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "contact_messages suppression authentifiée" on public.contact_messages;
+create policy "contact_messages suppression authentifiée"
+  on public.contact_messages for delete
+  to authenticated
+  using (true);
 
 -- ---------------------------------------------------------------------------
 -- Valeurs par défaut des paramètres (reprises des View Composers Laravel)

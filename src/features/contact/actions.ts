@@ -1,23 +1,20 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { requireUser } from '@/lib/dal'
+import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
-
-const contactSchema = z.object({
-  name: z.string().trim().min(1, 'Champ obligatoire.').max(255),
-  phone: z.string().trim().max(30).optional(),
-  email: z.email('Adresse e-mail invalide.'),
-  message: z.string().trim().min(1, 'Champ obligatoire.'),
-})
+import { contactSchema } from '@/features/contact/schema'
 
 export async function sendContactMessage(
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const parsed = contactSchema.safeParse({
-    name: formData.get('name'),
-    phone: formData.get('phone') || undefined,
+    nom: formData.get('nom'),
+    telephone: formData.get('telephone'),
     email: formData.get('email'),
     message: formData.get('message'),
   })
@@ -26,10 +23,49 @@ export async function sendContactMessage(
     return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
   }
 
-  // Le projet Laravel se contente de valider puis d'afficher une confirmation :
-  // l'envoi réel (e-mail ou stockage) reste à brancher ici.
+  // Action publique : aucune session à exiger ici. La politique RLS n'autorise
+  // `anon` qu'à insérer, jamais à relire les messages déjà déposés.
+  const supabase = await createClient()
+  const { error } = await supabase.from('contact_messages').insert(parsed.data)
+
+  if (error) {
+    return {
+      status: 'error',
+      message: "Votre message n'a pas pu être envoyé. Réessayez dans un instant.",
+    }
+  }
+
   return {
     status: 'success',
     message: 'Votre message a bien été envoyé. Nous vous répondons sous 24 h.',
   }
+}
+
+// La boîte de réception n'est pas mise en cache : elle dépend de la session.
+// `revalidatePath` suffit à rafraîchir la page après une action.
+export async function markMessageRead(formData: FormData): Promise<void> {
+  await requireUser()
+
+  const idMessage = Number(formData.get('id_message'))
+  if (!Number.isInteger(idMessage)) return
+
+  const supabase = await createClient()
+  await supabase
+    .from('contact_messages')
+    .update({ lu: formData.get('lu') === 'true' })
+    .eq('id_message', idMessage)
+
+  revalidatePath('/admin/messages')
+}
+
+export async function deleteContactMessage(formData: FormData): Promise<void> {
+  await requireUser()
+
+  const idMessage = Number(formData.get('id_message'))
+  if (!Number.isInteger(idMessage)) return
+
+  const supabase = await createClient()
+  await supabase.from('contact_messages').delete().eq('id_message', idMessage)
+
+  revalidatePath('/admin/messages')
 }

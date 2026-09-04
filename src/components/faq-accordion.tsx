@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 export type FaqItem = {
   question: string
-  answer: string
+  reponse: string
 }
 
 export function FaqAccordion({ items }: { items: FaqItem[] }) {
@@ -27,7 +27,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
                 {isOpen ? '−' : '+'}
               </span>
             </button>
-            {isOpen && <div className="px-5 pb-4 text-sm text-muted-foreground">{item.answer}</div>}
+            {isOpen && <div className="px-5 pb-4 text-sm text-muted-foreground">{item.reponse}</div>}
           </div>
         )
       })}

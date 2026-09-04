@@ -5,6 +5,7 @@ import { useActionState } from 'react'
 import { FieldError } from '@/components/ui/field-error'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState } from '@/lib/form-state'
+import { FormToast } from '@/components/ui/form-toast'
 import { sendContactMessage } from '@/features/contact/actions'
 
 const INPUT_CLASS =
@@ -15,27 +16,23 @@ export function ContactForm() {
 
   return (
     <form action={formAction} className="surface-card space-y-5 p-6 sm:p-8">
-      {state.status === 'success' && (
-        <div className="rounded-xl bg-success/10 px-4 py-3 text-sm text-success">
-          {state.message}
-        </div>
-      )}
+      <FormToast state={state} />
 
       <div>
-        <label htmlFor="name" className="text-sm font-medium text-muted-foreground">
+        <label htmlFor="nom" className="text-sm font-medium text-muted-foreground">
           Nom complet
         </label>
-        <input id="name" name="name" type="text" className={INPUT_CLASS} />
-        <FieldError messages={state.errors?.name} />
+        <input id="nom" name="nom" type="text" className={INPUT_CLASS} />
+        <FieldError messages={state.errors?.nom} />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="phone" className="text-sm font-medium text-muted-foreground">
+          <label htmlFor="telephone" className="text-sm font-medium text-muted-foreground">
             Téléphone
           </label>
-          <input id="phone" name="phone" type="tel" className={INPUT_CLASS} />
-          <FieldError messages={state.errors?.phone} />
+          <input id="telephone" name="telephone" type="tel" className={INPUT_CLASS} />
+          <FieldError messages={state.errors?.telephone} />
         </div>
         <div>
           <label htmlFor="email" className="text-sm font-medium text-muted-foreground">

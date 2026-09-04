@@ -8,9 +8,11 @@ import {
   FileText,
   MapPin,
   Menu,
+  MessageSquare,
   Network,
   Printer,
   Server,
+  HelpCircle,
   Settings2,
   Zap,
 } from 'lucide-react'
@@ -25,6 +27,8 @@ const NAV_LINKS = [
   { href: '/admin/machines', label: 'Machines', Icon: Server },
   { href: '/admin/gestion', label: 'Gestion', Icon: Network },
   { href: '/admin/tarifs', label: 'Tarifs', Icon: CreditCard },
+  { href: '/admin/faq', label: 'FAQ', Icon: HelpCircle },
+  { href: '/admin/messages', label: 'Messages', Icon: MessageSquare },
   { href: '/admin/parametres', label: 'Paramètres', Icon: Zap },
 ]
 
@@ -37,6 +41,10 @@ function resolvePageTitle(pathname: string): string {
   if (pathname.startsWith('/admin/machines/')) return 'Modifier la machine'
   if (pathname.startsWith('/admin/machines')) return 'Parc de machines'
   if (pathname.startsWith('/admin/gestion')) return 'Gestion des affectations'
+  if (pathname === '/admin/faq/nouveau') return 'Ajouter une question'
+  if (pathname.startsWith('/admin/faq/')) return 'Modifier la question'
+  if (pathname.startsWith('/admin/faq')) return 'FAQ'
+  if (pathname.startsWith('/admin/messages')) return 'Messages reçus'
   if (pathname.startsWith('/admin/tarifs')) return 'Tarifs'
   if (pathname.startsWith('/admin/parametres')) return 'Paramètres du site'
   if (pathname.startsWith('/admin/profil')) return 'Mon profil'

@@ -20,7 +20,9 @@ modèle — sauvegardez-les avant si vous y tenez. Enchaînez ensuite avec
 [`002_affectation_unique_machine.sql`](supabase/migrations/002_affectation_unique_machine.sql),
 qui interdit qu'une machine soit affectée à deux sites, puis
 [`003_machine_type_fonction.sql`](supabase/migrations/003_machine_type_fonction.sql),
-qui ajoute le format de papier et le rendu d'impression.
+qui ajoute le format de papier et le rendu d'impression, et enfin
+[`004_faq_et_messages.sql`](supabase/migrations/004_faq_et_messages.sql),
+qui rend la FAQ éditable et enregistre les messages de contact.
 
 ### Modèle de données
 
@@ -30,6 +32,8 @@ qui ajoute le format de papier et le rendu d'impression.
 | `machine` | Un photocopieur : `id_machine`, `serial_number`, `machine_name`, `mac_address`, `ip_address`, `type` (A4/A3), `fonction` (mono/couleur), `date_acquisition`, `date_mise_service`, `actif` |
 | `affectation` | Le lien entre une machine et le site où elle est installée |
 | `settings` | Tarifs, coordonnées de contact et statistiques éditables depuis l'admin |
+| `faq` | Questions affichées sur les pages Comment ça marche et Tarifs |
+| `contact_messages` | Messages déposés par le formulaire de la page Contact |
 
 Une machine n'équipe **qu'un seul site à la fois** : dès qu'elle est affectée,
 elle disparaît de la liste des machines disponibles. La règle est tenue par une
@@ -115,6 +119,8 @@ carte, saisie manuelle des coordonnées) continue de fonctionner.
 | `print-points.*` | `/admin/points`, `/admin/points/nouveau`, `/admin/points/[id]` |
 | — (nouveau) | `/admin/machines`, `/admin/machines/nouveau`, `/admin/machines/[id]` |
 | — (nouveau) | `/admin/gestion` — affectation des machines aux sites |
+| — (nouveau) | `/admin/faq`, `/admin/faq/nouveau`, `/admin/faq/[id]` |
+| — (nouveau) | `/admin/messages` — boîte de réception du formulaire de contact |
 | `/admin/tarifs` | `/admin/tarifs` |
 | `/admin/parametres` | `/admin/parametres` |
 | `/admin/profil` | `/admin/profil` |
@@ -128,7 +134,8 @@ src/
 │   └── admin/             # connexion + espace d'administration
 ├── features/              # organisé par domaine métier
 │   ├── auth/              # session, profil, coquille de l'admin
-│   ├── contact/           # formulaire de contact
+│   ├── contact/           # formulaire public et boîte de réception
+│   ├── faq/               # questions fréquentes éditables
 │   ├── affectations/      # affectation d'une machine à un site
 │   ├── machines/          # parc de photocopieurs
 │   ├── print-points/      # sites d'impression (CRUD, carte Leaflet)
@@ -147,9 +154,10 @@ immédiatement sur le site.
 
 ## Ce qui reste à brancher
 
-- **Formulaire de contact** : la validation est en place, mais l'envoi réel
-  (e-mail ou enregistrement en base) reste à implémenter dans
-  `src/features/contact/actions.ts` — le projet Laravel s'arrêtait au même point.
+- **Notification par e-mail des nouveaux messages** : les demandes sont
+  enregistrées en base et consultables dans `/admin/messages`, mais aucun e-mail
+  n'est envoyé à l'équipe. Il faut brancher un service d'envoi dans
+  `src/features/contact/actions.ts`.
 - **Commandes / chiffre d'affaires** du tableau de bord : marqués « Bientôt »
   dans le projet d'origine, non implémentés ici non plus.
 - **Mot de passe oublié** : lien présent sur la page de connexion Laravel, sans

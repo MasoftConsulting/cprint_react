@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 
 import { CtaBand } from '@/components/cta-band'
-import { FaqAccordion, type FaqItem } from '@/components/faq-accordion'
+import { FaqAccordion } from '@/components/faq-accordion'
+import { getFaqForPage } from '@/features/faq/queries'
 import { PriceCalculator } from '@/components/price-calculator'
 import { getPricing, getRechargeAmounts } from '@/features/settings/queries'
 
@@ -16,23 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
 const numberFormatter = new Intl.NumberFormat('fr-FR')
 
 export default async function TarifsPage() {
-  const [pricing, rechargeAmounts] = await Promise.all([getPricing(), getRechargeAmounts()])
+  const [pricing, rechargeAmounts, faq] = await Promise.all([
+    getPricing(),
+    getRechargeAmounts(),
+    getFaqForPage('tarifs'),
+  ])
 
-  const faq: FaqItem[] = [
-    {
-      question: 'Y a-t-il un abonnement ?',
-      answer: 'Non, aucun abonnement. Vous payez uniquement ce que vous imprimez.',
-    },
-    {
-      question: 'Comment fonctionne la carte prépayée ?',
-      answer:
-        'Rechargez le montant de votre choix et utilisez le solde à chaque impression, sans repasser par Mobile Money.',
-    },
-    {
-      question: 'Le recto/verso coûte-t-il plus cher ?',
-      answer: `Non, le tarif reste le même : ${pricing.nb} FCFA en N&B et ${pricing.couleur} FCFA en couleur, par page imprimée.`,
-    },
-  ]
 
   return (
     <>
@@ -104,12 +94,14 @@ export default async function TarifsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 pb-16">
-        <h2 className="text-center font-display text-2xl font-bold sm:text-3xl">
-          Questions fréquentes
-        </h2>
-        <FaqAccordion items={faq} />
-      </section>
+      {faq.length > 0 && (
+        <section className="mx-auto max-w-4xl px-4 pb-16">
+          <h2 className="text-center font-display text-2xl font-bold sm:text-3xl">
+            Questions fréquentes
+          </h2>
+          <FaqAccordion items={faq} />
+        </section>
+      )}
 
       <CtaBand />
       <div className="pb-4" />

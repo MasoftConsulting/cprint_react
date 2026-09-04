@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { CreditCard, MapPin, Send, Settings2 } from 'lucide-react'
 
 import { CtaBand } from '@/components/cta-band'
-import { FaqAccordion, type FaqItem } from '@/components/faq-accordion'
+import { FaqAccordion } from '@/components/faq-accordion'
+import { getFaqForPage } from '@/features/faq/queries'
 import { ButtonLink } from '@/components/ui/button-link'
 
 export const metadata: Metadata = {
@@ -38,26 +39,9 @@ const STEPS = [
   },
 ]
 
-const FAQ: FaqItem[] = [
-  {
-    question: 'Quels formats de fichiers sont acceptés ?',
-    answer: "PDF, DOCX, PPTX, JPG et PNG, jusqu'à 50 Mo par envoi.",
-  },
-  {
-    question: 'Mes documents sont-ils en sécurité ?',
-    answer: 'Oui, vos fichiers sont supprimés automatiquement 24 heures après leur envoi.',
-  },
-  {
-    question: 'Quels moyens de paiement puis-je utiliser ?',
-    answer: 'Flooz, T-Money/Mixx, ou la carte prépayée Campus Print.',
-  },
-  {
-    question: 'Faut-il créer un compte ?',
-    answer: "Non, aucun compte n'est nécessaire pour imprimer un document.",
-  },
-]
+export default async function CommentCaMarchePage() {
+  const faq = await getFaqForPage('comment-ca-marche')
 
-export default function CommentCaMarchePage() {
   return (
     <>
       <section className="bg-[image:var(--gradient-hero)] text-primary-foreground">
@@ -109,12 +93,14 @@ export default function CommentCaMarchePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 pb-16">
-        <h2 className="text-center font-display text-2xl font-bold sm:text-3xl">
-          Questions fréquentes
-        </h2>
-        <FaqAccordion items={FAQ} />
-      </section>
+      {faq.length > 0 && (
+        <section className="mx-auto max-w-4xl px-4 pb-16">
+          <h2 className="text-center font-display text-2xl font-bold sm:text-3xl">
+            Questions fréquentes
+          </h2>
+          <FaqAccordion items={faq} />
+        </section>
+      )}
 
       <CtaBand />
       <div className="pb-4" />
