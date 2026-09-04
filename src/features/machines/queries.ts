@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
 import type { MachineFonction, MachineType } from '@/features/machines/schema'
+import { logQueryError } from '@/lib/query-error'
 
 export const MACHINES_TAG = 'machines'
 
@@ -57,7 +58,10 @@ export async function getMachines(): Promise<MachineWithSites[]> {
     .order('actif', { ascending: false })
     .order('serial_number', { ascending: true })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError('lecture du parc de machines', error)
+    return []
+  }
 
   return data.map((row) => {
     const record = row as Record<string, unknown>
@@ -83,6 +87,7 @@ export async function findMachine(idMachine: number): Promise<MachineWithSites |
     .eq('id_machine', idMachine)
     .maybeSingle()
 
+  if (error) logQueryError('lecture d’une machine', error)
   if (error || !data) return null
 
   const record = data as Record<string, unknown>

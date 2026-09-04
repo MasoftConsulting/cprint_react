@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { logQueryError } from '@/lib/query-error'
 
 export type ContactMessage = {
   id_message: number
@@ -27,7 +28,10 @@ export async function getContactMessages(): Promise<ContactMessage[]> {
     .select(COLUMNS)
     .order('created_at', { ascending: false })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError('lecture des messages de contact', error)
+    return []
+  }
 
   return data.map((row) => ({
     id_message: Number(row.id_message),

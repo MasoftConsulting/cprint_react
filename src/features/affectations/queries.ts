@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { logQueryError } from '@/lib/query-error'
 
 export type AvailableMachine = {
   id_machine: number
@@ -38,7 +39,11 @@ export async function getAvailableMachines(): Promise<AvailableMachine[]> {
     supabase.from('affectation').select('id_machine'),
   ])
 
-  if (machines.error || !machines.data) return []
+  if (machines.error || !machines.data) {
+    logQueryError('lecture des machines disponibles', machines.error)
+    return []
+  }
+  logQueryError('lecture des affectations', affectations.error)
 
   const assigned = new Set((affectations.data ?? []).map((row) => Number(row.id_machine)))
 
@@ -63,7 +68,10 @@ export async function getSiteAssignments(): Promise<SiteAssignment[]> {
     )
     .order('site_name', { ascending: true })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError('lecture des affectations par site', error)
+    return []
+  }
 
   return data.map((row) => {
     const record = row as Record<string, unknown>

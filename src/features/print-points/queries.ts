@@ -3,6 +3,7 @@ import 'server-only'
 import { cacheLife, cacheTag } from 'next/cache'
 
 import { createAnonClient } from '@/lib/supabase/anon'
+import { logQueryError } from '@/lib/query-error'
 
 export const PRINT_POINTS_TAG = 'print-points'
 
@@ -52,7 +53,10 @@ export async function getPrintPoints(): Promise<PrintPoint[]> {
     .order('actif', { ascending: false })
     .order('site_name', { ascending: true })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError('lecture des sites', error)
+    return []
+  }
   return data.map((row) => normalize(row as Record<string, unknown>))
 }
 
@@ -76,7 +80,11 @@ export async function getPrintPointsWithMachines(): Promise<PrintPointWithMachin
     supabase.from('site_machine_counts').select('id_site, machines_actives'),
   ])
 
-  if (sites.error || !sites.data) return []
+  if (sites.error || !sites.data) {
+    logQueryError('lecture des sites', sites.error)
+    return []
+  }
+  logQueryError('lecture des compteurs de machines', counts.error)
 
   const byId = new Map<number, number>()
   for (const row of counts.data ?? []) {
@@ -112,6 +120,7 @@ export async function findPrintPoint(idSite: number): Promise<PrintPoint | null>
     .eq('id_site', idSite)
     .maybeSingle()
 
+  if (error) logQueryError('lecture d’un site', error)
   if (error || !data) return null
   return normalize(data as Record<string, unknown>)
 }

@@ -4,6 +4,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 
 import { createAnonClient } from '@/lib/supabase/anon'
 import type { FaqPage } from '@/features/faq/schema'
+import { logQueryError } from '@/lib/query-error'
 
 export const FAQ_TAG = 'faq'
 
@@ -46,7 +47,10 @@ export async function getFaqForPage(page: FaqPage): Promise<FaqEntry[]> {
     .eq('actif', true)
     .order('position', { ascending: true })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError(`lecture de la FAQ (page ${page})`, error)
+    return []
+  }
   return data.map((row) => normalize(row as Record<string, unknown>))
 }
 
@@ -63,7 +67,10 @@ export async function getAllFaq(): Promise<FaqEntry[]> {
     .order('page', { ascending: true })
     .order('position', { ascending: true })
 
-  if (error || !data) return []
+  if (error || !data) {
+    logQueryError('lecture de la FAQ', error)
+    return []
+  }
   return data.map((row) => normalize(row as Record<string, unknown>))
 }
 
@@ -76,6 +83,7 @@ export async function findFaq(idFaq: number): Promise<FaqEntry | null> {
     .eq('id_faq', idFaq)
     .maybeSingle()
 
+  if (error) logQueryError('lecture d’une question de FAQ', error)
   if (error || !data) return null
   return normalize(data as Record<string, unknown>)
 }
