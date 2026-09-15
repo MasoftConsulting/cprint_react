@@ -54,7 +54,7 @@ export type SessionState = {
   email: string
   documents: PrintDocument[]
   total_pages: number
-  /** Renvoyé dès que des documents sont arrivés ; autorise l'aperçu. */
+  /** `null` tant que le code de retrait n'a pas été remis, c'est-à-dire avant le paiement. */
   code: string | null
   expires_at: string
   warnings: string[]
@@ -63,7 +63,8 @@ export type SessionState = {
 export type UploadResult = {
   token: string
   status: SessionStatus
-  code: string
+  /** `null` tant que le paiement n'est pas confirmé : le code de retrait est remis après paiement. */
+  code: string | null
   documents: PrintDocument[]
   total_pages: number
   code_sent_to: string
@@ -215,6 +216,11 @@ export function getPayment(reference: string) {
 // Pas de fonction d'impression ici, volontairement : imprimer n'est possible
 // que depuis la borne du magasin, après saisie du code de retrait. L'API refuse
 // d'ailleurs toute demande d'impression venue d'Internet.
+
+/** Aperçu avant paiement, protégé par le jeton de session (le code n'existe pas encore pour le client). */
+export function sessionPreviewUrl(token: string, jobId: number) {
+  return `${PRINT_API_URL}/sessions/${token}/documents/${jobId}/preview`
+}
 
 /** URL d'aperçu d'un document, protégée par le même code que l'impression. */
 export function previewUrl(jobId: number, code: string) {

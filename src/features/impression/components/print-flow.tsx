@@ -28,6 +28,7 @@ import {
   isPrintApiConfigured,
   previewUrl,
   PrintApiError,
+  sessionPreviewUrl,
   verifyCode,
   type ColorMode,
   type Duplex,
@@ -68,6 +69,8 @@ const MAX_COPIES = 20
 type Ready = {
   paid: { amount: number; currency: string } | null
   pages: number
+  /** Paiement de démonstration (aucune transaction réelle). */
+  simulated: boolean
 }
 
 export function PrintFlow() {
@@ -137,10 +140,26 @@ export function PrintFlow() {
     setStep('documents')
   }, [])
 
-  const showReady = useCallback((paid: Ready['paid'], pages: number) => {
-    setReady({ paid, pages })
-    setStep('ready')
-  }, [])
+  /**
+   * Écran final. Dans le parcours QR code, le code de retrait n'existe pour le
+   * client qu'à partir d'ici : l'API ne le remet (e-mail + écran) qu'une fois
+   * le paiement confirmé, c'est la preuve du paiement. On le relit donc sur la
+   * session à ce moment-là, jamais avant.
+   */
+  const showReady = useCallback(
+    async (paid: Ready['paid'], pages: number, simulated = false) => {
+      setReady({ paid, pages, simulated })
+      setStep('ready')
+      if (!session) return
+      try {
+        const state = await getSession(session.token)
+        if (state.code) setCode(state.code)
+      } catch {
+        // Le code est aussi parti par e-mail : l'écran final le signale.
+      }
+    },
+    [session],
+  )
 
   // --- Étape 1 : démarrer une session ---------------------------------------
   async function handleStart(event: React.FormEvent) {
@@ -167,9 +186,7 @@ export function PrintFlow() {
         const state = await getSession(session.token)
         if (cancelled) return
         if (state.documents.length > 0) {
-          // Le code accompagne les documents : il autorise l'aperçu, et c'est
-          // lui que le client tapera sur la borne.
-          if (state.code) setCode(state.code)
+          // Pas de code à ce stade : il n'est remis qu'après le paiement.
           showDocuments(state.documents)
         } else if (state.status === 'EXPIRED') {
           setError('La session a expiré. Recommencez pour obtenir un nouveau QR code.')
@@ -241,7 +258,7 @@ export function PrintFlow() {
 
       if (created.status === 'APPROVED') {
         // Mode simulé (FedaPay pas encore branché) : validé immédiatement.
-        showReady(paidOf(created), created.pages)
+        showReady(paidOf(created), created.pages, created.provider === 'SIMULATED')
       } else {
         setStep('paying')
       }
@@ -264,7 +281,7 @@ export function PrintFlow() {
         setPaymentState({ key: optionsKey, payment: next })
 
         if (next.status === 'APPROVED') {
-          showReady(paidOf(next), next.pages)
+          showReady(paidOf(next), next.pages, next.provider === 'SIMULATED')
         } else if (next.status !== 'PENDING') {
           setError("Le paiement n'a pas abouti. Vous pouvez réessayer.")
           setStep('documents')
@@ -333,7 +350,13 @@ export function PrintFlow() {
                 : [...current, jobId],
             )
           }
-          code={code}
+          previewSrc={
+            session
+              ? (jobId) => sessionPreviewUrl(session.token, jobId)
+              : code
+                ? (jobId) => previewUrl(jobId, code)
+                : null
+          }
           preview={preview}
           onPreview={setPreview}
           colorMode={colorMode}
@@ -490,7 +513,7 @@ function DocumentsStep({
   documents,
   selected,
   onToggle,
-  code,
+  previewSrc,
   preview,
   onPreview,
   colorMode,
@@ -508,7 +531,7 @@ function DocumentsStep({
   documents: PrintDocument[]
   selected: number[]
   onToggle: (jobId: number) => void
-  code: string
+  previewSrc: ((jobId: number) => string) | null
   preview: number | null
   onPreview: (jobId: number | null) => void
   colorMode: ColorMode
@@ -553,7 +576,7 @@ function DocumentsStep({
               <span className="shrink-0 text-xs text-muted-foreground">
                 {doc.page_count} p. · {formatSize(doc.file_size_bytes)}
               </span>
-              {code && (
+              {previewSrc && (
                 <button
                   type="button"
                   onClick={() => onPreview(preview === doc.job_id ? null : doc.job_id)}
@@ -564,9 +587,9 @@ function DocumentsStep({
                 </button>
               )}
             </div>
-            {preview === doc.job_id && code && (
+            {preview === doc.job_id && previewSrc && (
               <iframe
-                src={previewUrl(doc.job_id, code)}
+                src={previewSrc(doc.job_id)}
                 title={`Aperçu de ${doc.original_filename}`}
                 className="mt-2 h-[28rem] w-full rounded-xl border border-border"
               />
@@ -740,11 +763,24 @@ function ReadyStep({
             ? `${formatAmount(ready.paid.amount, ready.paid.currency)} réglés — ${ready.pages} page${ready.pages > 1 ? 's' : ''}.`
             : 'Rien ne sera imprimé avant votre passage à la borne.'}
         </p>
+        {ready.simulated && (
+          <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-semibold text-muted-foreground">
+            Paiement de démonstration — aucun montant débité
+          </p>
+        )}
       </div>
 
       <div className="mt-6 rounded-2xl bg-[image:var(--gradient-hero)] px-6 py-8 text-center text-primary-foreground">
         <p className="text-sm opacity-85">Votre code de retrait</p>
-        <p className="mt-2 font-mono text-5xl font-extrabold tracking-[0.2em]">{code}</p>
+        {code ? (
+          <p className="mt-2 font-mono text-5xl font-extrabold tracking-[0.2em]">{code}</p>
+        ) : (
+          <p className="mt-3 flex items-center justify-center gap-2 text-base font-semibold">
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+            Envoi en cours par e-mail…
+          </p>
+        )}
+        <p className="mt-3 text-xs opacity-75">Une copie vous a été envoyée par e-mail.</p>
       </div>
 
       <div className="mt-6 flex gap-3 rounded-xl bg-accent px-5 py-4 text-sm">

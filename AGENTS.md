@@ -56,6 +56,9 @@ exposée par un tunnel Cloudflare.
   (`http://localhost:8000`, servie par FastAPI) quand le client y saisit ce
   code. L'API refuse `POST /jobs/print` venu d'Internet — ne jamais ajouter
   d'appel d'impression côté Next.js.
+- **Le code de retrait n'est remis qu'après paiement confirmé** (e-mail + écran
+  final). Avant, l'écran n'a que le jeton de session : l'aperçu passe par
+  `sessionPreviewUrl()`. Ne jamais afficher de code avant l'étape `ready`.
 
 Documentation complète du flux, des garde-fous de paiement et du déploiement :
 `campus-print/README.md`.

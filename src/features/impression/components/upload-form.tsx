@@ -20,10 +20,9 @@ import {
  * Next.js : ils doivent de toute façon atterrir sur la machine qui parle à
  * l'imprimante (voir `../api.ts`).
  *
- * Le code à 6 chiffres est affiché ici, en grand, dès que le téléversement est
- * terminé — c'est le téléphone de la personne qui vient d'envoyer ses propres
- * documents. Elle ne devrait pas avoir à attendre un e-mail devant la borne.
- * L'e-mail part quand même, comme trace et comme repli si elle ferme la page.
+ * Le code de retrait n'est PAS affiché après l'envoi : il est remis (e-mail +
+ * écran) seulement une fois le paiement confirmé, sur l'écran où le QR code a
+ * été scanné. Exception : impression gratuite, où il n'y a rien à payer.
  */
 
 const ACCEPT = '.pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp'
@@ -167,31 +166,44 @@ export function UploadForm({ token }: { token: string | null }) {
 }
 
 function UploadSuccess({ result }: { result: UploadResult }) {
+  const count = result.documents.length
+
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl bg-[image:var(--gradient-hero)] px-6 py-8 text-center text-primary-foreground">
-        <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden />
-        <p className="mt-3 text-sm opacity-85">Votre code de retrait</p>
-        <p className="mt-2 font-mono text-5xl font-extrabold tracking-[0.2em]">{result.code}</p>
-        <p className="mt-4 text-sm opacity-85">
-          Saisissez ce code sur la borne pour lancer l&apos;impression.
-        </p>
-      </div>
+      {result.code ? (
+        // Impression gratuite (aucun tarif) : rien à payer, le code est remis tout de suite.
+        <div className="rounded-2xl bg-[image:var(--gradient-hero)] px-6 py-8 text-center text-primary-foreground">
+          <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden />
+          <p className="mt-3 text-sm opacity-85">Votre code de retrait</p>
+          <p className="mt-2 font-mono text-5xl font-extrabold tracking-[0.2em]">{result.code}</p>
+          <p className="mt-4 text-sm opacity-85">
+            Saisissez ce code sur la borne pour lancer l&apos;impression.
+          </p>
+        </div>
+      ) : (
+        // Cas normal : le code de retrait n'est remis qu'après le paiement,
+        // qui se fait sur l'écran où le QR code a été scanné.
+        <div className="rounded-2xl bg-[image:var(--gradient-hero)] px-6 py-8 text-center text-primary-foreground">
+          <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden />
+          <p className="mt-3 text-2xl font-extrabold">Documents reçus</p>
+          <p className="mt-3 text-sm opacity-85">
+            Revenez sur l&apos;écran où vous avez scanné le QR code pour choisir vos options et
+            payer.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card p-5">
         <p className="text-sm font-semibold">
-          {result.documents.length} document{result.documents.length > 1 ? 's' : ''} reçu
-          {result.documents.length > 1 ? 's' : ''} — {result.total_pages} page
-          {result.total_pages > 1 ? 's' : ''}
+          {count} document{count > 1 ? 's' : ''} reçu{count > 1 ? 's' : ''} — {result.total_pages}{' '}
+          page{result.total_pages > 1 ? 's' : ''}
         </p>
         <ul className="mt-3 space-y-2">
           {result.documents.map((doc) => (
             <li key={doc.job_id} className="flex items-center gap-3 text-sm">
               <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
               <span className="min-w-0 flex-1 truncate">{doc.original_filename}</span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {doc.page_count} p.
-              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">{doc.page_count} p.</span>
             </li>
           ))}
         </ul>
@@ -207,14 +219,16 @@ function UploadSuccess({ result }: { result: UploadResult }) {
         </Notice>
       )}
 
-      {result.code_email_failed ? (
+      {result.code && result.code_email_failed ? (
         <Notice tone="warning" title="E-mail non envoyé">
           Nous n&apos;avons pas pu envoyer le code à {result.code_sent_to}. Notez-le bien
           ci-dessus avant de quitter cette page.
         </Notice>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
-          Une copie du code a été envoyée à {result.code_sent_to}.
+          {result.code
+            ? `Une copie du code a été envoyée à ${result.code_sent_to}.`
+            : `Votre code de retrait sera envoyé à ${result.code_sent_to} dès le paiement confirmé.`}
         </p>
       )}
     </div>
