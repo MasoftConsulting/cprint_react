@@ -10,7 +10,10 @@ const nextConfig: NextConfig = {
   // liste, ouvrir le site depuis l'IP réseau — un téléphone sur le même Wi-Fi,
   // par exemple — sert le HTML mais bloque le JavaScript client : plus aucune
   // interactivité (simulateur, cartes, menus). N'a aucun effet en production.
-  allowedDevOrigins: ['192.168.1.73', '192.168.*.*', '10.*.*.*', '*.local'],
+  // `*.trycloudflare.com` : test du parcours QR code en 4G avant tout
+  // déploiement, en exposant le serveur de dev par un tunnel Cloudflare rapide
+  // (voir campus-print/deploy/cloudflared/README.md, option A).
+  allowedDevOrigins: ['192.168.1.73', '192.168.*.*', '10.*.*.*', '*.local', '*.trycloudflare.com'],
 
   images: {
     remotePatterns: [],

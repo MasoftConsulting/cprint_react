@@ -32,6 +32,34 @@ Lis-la avant d'utiliser une API dont tu n'es pas certain — ne code pas de mém
 - Aucune ligne brute de la base ne traverse la frontière serveur/client : projeter
   explicitement les champs nécessaires.
 
+## Service d'impression (API Python)
+
+Le parcours `/imprimer` s'appuie sur une **API FastAPI séparée**, dans le dépôt
+voisin `campus-print/`. Elle tourne sur une machine du magasin — elle seule
+peut parler à la Sharp BP-70C31 par le réseau local (port 9100) — et est
+exposée par un tunnel Cloudflare.
+
+- Client typé : `src/features/impression/api.ts`. Appelé **depuis le
+  navigateur**, jamais depuis un Server Action : les fichiers doivent de toute
+  façon atterrir sur la machine qui imprime.
+- URL : `NEXT_PUBLIC_PRINT_API_URL`. Vide, `/imprimer` affiche « bientôt
+  disponible » et les boutons « Imprimer un document » gardent leur ancienne
+  destination (`printEntryHref()`) : le site en ligne n'est jamais cassé tant
+  que le tunnel n'est pas en place.
+- **Les tarifs sont administrés ici** (table `settings` Supabase, back-office
+  `/admin/tarifs`) et lus par FastAPI en REST. Ne jamais dupliquer un prix en
+  dur : le montant réellement débité vient de cette table.
+- Le montant affiché à l'écran n'est qu'un confort de lecture — il est
+  recalculé côté FastAPI au moment de payer, puis d'imprimer.
+- **Rien ne s'imprime depuis le site.** `/imprimer` s'arrête au paiement et
+  affiche le code de retrait ; l'impression part de la borne du magasin
+  (`http://localhost:8000`, servie par FastAPI) quand le client y saisit ce
+  code. L'API refuse `POST /jobs/print` venu d'Internet — ne jamais ajouter
+  d'appel d'impression côté Next.js.
+
+Documentation complète du flux, des garde-fous de paiement et du déploiement :
+`campus-print/README.md`.
+
 ## Commandes
 
 ```bash

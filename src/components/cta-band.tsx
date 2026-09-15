@@ -1,4 +1,5 @@
 import { ButtonLink } from '@/components/ui/button-link'
+import { printEntryHref } from '@/features/impression/api'
 
 export function CtaBand() {
   return (
@@ -12,7 +13,7 @@ export function CtaBand() {
           abonnement.
         </p>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <ButtonLink href="/tarifs">Imprimer un document</ButtonLink>
+          <ButtonLink href={printEntryHref('/tarifs')}>Imprimer un document</ButtonLink>
           <ButtonLink href="/points" variant="soft">
             Trouver un point Campus
           </ButtonLink>

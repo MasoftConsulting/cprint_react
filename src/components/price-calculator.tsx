@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Copy, FileText, Palette } from 'lucide-react'
 
+import { printEntryHref } from '@/features/impression/api'
 import { cn } from '@/lib/cn'
 
 type ColorMode = 'nb' | 'couleur'
@@ -158,7 +159,7 @@ export function PriceCalculator({ priceNb, priceCouleur }: Props) {
       </div>
 
       <Link
-        href="/points"
+        href={printEntryHref('/points')}
         className="mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium whitespace-nowrap text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98]"
       >
         Imprimer un document

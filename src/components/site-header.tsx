@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, Printer } from 'lucide-react'
 
+import { printEntryHref } from '@/features/impression/api'
 import { cn } from '@/lib/cn'
 
 const NAV_LINKS = [
@@ -50,7 +51,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/tarifs"
+            href={printEntryHref('/tarifs')}
             className="hidden h-10 items-center justify-center gap-2 rounded-xl bg-cta px-5 text-sm font-medium whitespace-nowrap text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98] sm:inline-flex"
           >
             Imprimer un document
@@ -81,7 +82,7 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link
-              href="/tarifs"
+              href={printEntryHref('/tarifs')}
               onClick={() => setMobileNavOpen(false)}
               className="mt-2 inline-flex h-11 items-center justify-center rounded-xl bg-cta px-5 text-sm font-medium text-cta-foreground shadow-[var(--shadow-cta)]"
             >

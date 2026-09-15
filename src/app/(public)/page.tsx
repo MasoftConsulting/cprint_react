@@ -4,6 +4,7 @@ import { Clock, CreditCard, MapPin, Send, Settings2, ShieldCheck, Smartphone, Za
 import { CtaBand } from '@/components/cta-band'
 import { PriceCalculator } from '@/components/price-calculator'
 import { ButtonLink } from '@/components/ui/button-link'
+import { printEntryHref } from '@/features/impression/api'
 import { getActivePrintPointsCount } from '@/features/print-points/queries'
 import { getPricing, getSettings } from '@/features/settings/queries'
 
@@ -65,7 +66,7 @@ export default async function HomePage() {
               envoyez votre document, payez en Mobile Money, récupérez votre impression sur place.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/tarifs">Imprimer un document</ButtonLink>
+              <ButtonLink href={printEntryHref('/tarifs')}>Imprimer un document</ButtonLink>
               <ButtonLink href="/comment-ca-marche" variant="light">
                 Comment ça marche
               </ButtonLink>
