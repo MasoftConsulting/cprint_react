@@ -13,7 +13,7 @@ const STEPS = [
     Icon: Send,
     num: '01',
     title: 'Envoyez',
-    text: 'PDF, Word, PowerPoint ou photo, depuis votre téléphone.',
+    text: 'PDF, Word, Excel, PowerPoint ou photo, depuis votre téléphone.',
   },
   {
     Icon: Settings2,

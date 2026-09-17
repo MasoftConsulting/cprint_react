@@ -488,9 +488,19 @@ function WaitingStep({
           </p>
 
           <p className="text-center text-xs text-muted-foreground">
-            Pas de lecteur de QR code ? Ouvrez cette adresse sur votre téléphone :
+            Pas de lecteur de QR code ? Ouvrez cette adresse sur votre téléphone, ou cliquez
+            dessus pour envoyer vos fichiers depuis cet ordinateur :
             <br />
-            <span className="mt-1 inline-block font-mono break-all">{session.upload_url}</span>
+            {/* Nouvel onglet : cet écran-ci continue de suivre la session et
+                affiche les documents dès qu'ils sont envoyés depuis l'autre. */}
+            <a
+              href={session.upload_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block font-mono break-all text-primary underline underline-offset-2 hover:text-primary-dark"
+            >
+              {session.upload_url}
+            </a>
           </p>
         </div>
 

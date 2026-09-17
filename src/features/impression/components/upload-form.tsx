@@ -25,7 +25,8 @@ import {
  * été scanné. Exception : impression gratuite, où il n'y a rien à payer.
  */
 
-const ACCEPT = '.pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp'
+// Les fichiers Office sont convertis en PDF par l'API dès l'envoi (LibreOffice).
+const ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp'
 
 /**
  * Lit le jeton de session dans l'URL du QR code (`?session=...`).
@@ -111,7 +112,7 @@ export function UploadForm({ token }: { token: string | null }) {
             {files.length > 0 ? 'Changer de fichiers' : 'Choisir mes documents'}
           </span>
           <span className="text-sm text-muted-foreground">
-            PDF ou photos — vous pouvez en sélectionner plusieurs
+            PDF, Word, Excel, PowerPoint ou photos — vous pouvez en sélectionner plusieurs
           </span>
         </button>
       </div>
