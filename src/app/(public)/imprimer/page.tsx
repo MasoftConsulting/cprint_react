@@ -1,6 +1,7 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
-import { PrintFlow } from '@/features/impression/components/print-flow'
+import { PrintFlow, PrintFlowFromQuery } from '@/features/impression/components/print-flow'
 
 export const metadata: Metadata = {
   title: 'Imprimer un document',
@@ -25,7 +26,10 @@ export default function ImprimerPage() {
       </section>
 
       <section className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
-        <PrintFlow />
+        {/* Repli sans jeton : le parcours normal s'affiche tout de suite. */}
+        <Suspense fallback={<PrintFlow />}>
+          <PrintFlowFromQuery />
+        </Suspense>
       </section>
     </>
   )

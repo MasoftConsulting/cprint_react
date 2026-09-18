@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { AlertTriangle, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { AlertTriangle, ArrowRight, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import {
@@ -38,10 +39,22 @@ const ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,
  */
 export function UploadFormFromQuery() {
   const params = useSearchParams()
-  return <UploadForm token={params.get('session')} />
+  return <UploadForm token={params.get('session')} returnToFlow={params.get('retour') === '1'} />
 }
 
-export function UploadForm({ token }: { token: string | null }) {
+/**
+ * `returnToFlow` : page ouverte depuis le lien sous le QR code, dans l'onglet
+ * même du parcours (client sur ordinateur). Après l'envoi, on y retourne
+ * directement pour choisir les options et payer.
+ */
+export function UploadForm({
+  token,
+  returnToFlow = false,
+}: {
+  token: string | null
+  returnToFlow?: boolean
+}) {
+  const router = useRouter()
   const [files, setFiles] = useState<File[]>([])
   const [status, setStatus] = useState<'idle' | 'sending' | 'done'>('idle')
   const [result, setResult] = useState<UploadResult | null>(null)
@@ -72,7 +85,12 @@ export function UploadForm({ token }: { token: string | null }) {
     setStatus('sending')
     setError(null)
     try {
-      setResult(await uploadToSession(token!, files))
+      const uploaded = await uploadToSession(token!, files)
+      if (returnToFlow && uploaded.warnings.length === 0) {
+        router.replace(flowHref(token!))
+        return
+      }
+      setResult(uploaded)
       setStatus('done')
     } catch (cause) {
       setError(
@@ -85,7 +103,9 @@ export function UploadForm({ token }: { token: string | null }) {
   }
 
   if (status === 'done' && result) {
-    return <UploadSuccess result={result} />
+    return (
+      <UploadSuccess result={result} continueHref={returnToFlow ? flowHref(token) : null} />
+    )
   }
 
   return (
@@ -166,7 +186,18 @@ export function UploadForm({ token }: { token: string | null }) {
   )
 }
 
-function UploadSuccess({ result }: { result: UploadResult }) {
+function flowHref(token: string) {
+  return `/imprimer?session=${encodeURIComponent(token)}`
+}
+
+function UploadSuccess({
+  result,
+  continueHref,
+}: {
+  result: UploadResult
+  /** Retour au parcours (même onglet) : bouton au lieu de « revenez à l'écran ». */
+  continueHref: string | null
+}) {
   const count = result.documents.length
 
   return (
@@ -188,8 +219,9 @@ function UploadSuccess({ result }: { result: UploadResult }) {
           <CheckCircle2 className="mx-auto h-10 w-10" aria-hidden />
           <p className="mt-3 text-2xl font-extrabold">Documents reçus</p>
           <p className="mt-3 text-sm opacity-85">
-            Revenez sur l&apos;écran où vous avez scanné le QR code pour choisir vos options et
-            payer.
+            {continueHref
+              ? 'Il ne reste plus qu’à choisir vos options et payer.'
+              : "Revenez sur l'écran où vous avez scanné le QR code pour choisir vos options et payer."}
           </p>
         </div>
       )}
@@ -218,6 +250,17 @@ function UploadSuccess({ result }: { result: UploadResult }) {
             ))}
           </ul>
         </Notice>
+      )}
+
+      {continueHref && (
+        <Link
+          href={continueHref}
+          replace
+          className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98]"
+        >
+          Continuer vers le paiement
+          <ArrowRight className="h-5 w-5" aria-hidden />
+        </Link>
       )}
 
       {result.code && result.code_email_failed ? (

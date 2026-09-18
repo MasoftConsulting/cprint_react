@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -28,6 +30,8 @@ import {
   isPrintApiConfigured,
   previewUrl,
   PrintApiError,
+  resumedSession,
+  sameTabUploadHref,
   sessionPreviewUrl,
   verifyCode,
   type ColorMode,
@@ -51,15 +55,16 @@ import {
  * magasin, quand le client y saisit son code de retrait — et l'API refuse de
  * toute façon d'imprimer sur demande venue d'Internet.
  *
- * Deux chemins mènent aux documents : l'écran suit la session en direct (le
- * client vient de téléverser), ou le client saisit le code reçu par e-mail (il
- * revient plus tard, par exemple pour payer).
+ * Trois chemins mènent aux documents : l'écran suit la session en direct (le
+ * client téléverse depuis son téléphone), la page d'envoi ouverte dans ce même
+ * onglet y ramène (`?session=…`), ou le client saisit le code reçu par e-mail
+ * (il revient plus tard, par exemple pour payer).
  *
  * Le montant affiché ici n'est jamais celui qui fait foi : il est recalculé
  * côté serveur au moment de payer et de nouveau au moment d'imprimer.
  */
 
-type Step = 'start' | 'waiting' | 'documents' | 'paying' | 'ready'
+type Step = 'resuming' | 'start' | 'waiting' | 'documents' | 'paying' | 'ready'
 
 const SESSION_POLL_MS = 3000
 const PAYMENT_POLL_MS = 3000
@@ -73,8 +78,18 @@ type Ready = {
   simulated: boolean
 }
 
-export function PrintFlow() {
-  const [step, setStep] = useState<Step>('start')
+/**
+ * Lit le jeton de session au retour de la page d'envoi (`?session=…`).
+ * Côté client, comme la page d'envoi : la page `/imprimer` reste statique.
+ * À placer sous un `<Suspense>`.
+ */
+export function PrintFlowFromQuery() {
+  const params = useSearchParams()
+  return <PrintFlow resumeToken={params.get('session')} />
+}
+
+export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null }) {
+  const [step, setStep] = useState<Step>(resumeToken ? 'resuming' : 'start')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -160,6 +175,47 @@ export function PrintFlow() {
     },
     [session],
   )
+
+  // --- Retour de la page d'envoi ouverte dans cet onglet ---------------------
+  useEffect(() => {
+    if (!resumeToken) return
+
+    let cancelled = false
+    getSession(resumeToken)
+      .then((state) => {
+        if (cancelled) return
+        // Le jeton quitte l'adresse : un rechargement repart de l'accueil
+        // plutôt que de rejouer la reprise.
+        window.history.replaceState(null, '', '/imprimer')
+        if (state.status === 'EXPIRED') {
+          setError('La session a expiré. Recommencez pour obtenir un nouveau QR code.')
+          setStep('start')
+          return
+        }
+        setSession(resumedSession(state, window.location.origin))
+        if (state.code) {
+          // Impression gratuite : le code a été remis dès l'envoi.
+          setCode(state.code)
+          setReady({ paid: null, pages: state.total_pages, simulated: false })
+          setStep('ready')
+        } else if (state.documents.length > 0) {
+          showDocuments(state.documents)
+        } else {
+          // Rien d'envoyé (retour arrière) : on réaffiche le QR code.
+          setStep('waiting')
+        }
+      })
+      .catch((cause) => {
+        if (cancelled) return
+        window.history.replaceState(null, '', '/imprimer')
+        setError(messageOf(cause, 'Session introuvable. Recommencez.'))
+        setStep('start')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [resumeToken, showDocuments])
 
   // --- Étape 1 : démarrer une session ---------------------------------------
   async function handleStart(event: React.FormEvent) {
@@ -314,6 +370,15 @@ export function PrintFlow() {
         <Notice tone="error" title="Un instant">
           {error}
         </Notice>
+      )}
+
+      {step === 'resuming' && (
+        <Card>
+          <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Récupération de vos documents…
+          </p>
+        </Card>
       )}
 
       {step === 'start' && (
@@ -491,16 +556,14 @@ function WaitingStep({
             Pas de lecteur de QR code ? Ouvrez cette adresse sur votre téléphone, ou cliquez
             dessus pour envoyer vos fichiers depuis cet ordinateur :
             <br />
-            {/* Nouvel onglet : cet écran-ci continue de suivre la session et
-                affiche les documents dès qu'ils sont envoyés depuis l'autre. */}
-            <a
-              href={session.upload_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* Même onglet : après l'envoi, la page d'envoi ramène ici
+                (`?session=…`), directement sur les options et le paiement. */}
+            <Link
+              href={sameTabUploadHref(session.token)}
               className="mt-1 inline-block font-mono break-all text-primary underline underline-offset-2 hover:text-primary-dark"
             >
               {session.upload_url}
-            </a>
+            </Link>
           </p>
         </div>
 

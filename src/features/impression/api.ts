@@ -217,6 +217,30 @@ export function getPayment(reference: string) {
 // que depuis la borne du magasin, après saisie du code de retrait. L'API refuse
 // d'ailleurs toute demande d'impression venue d'Internet.
 
+/**
+ * Page d'envoi ouverte dans l'onglet même du parcours : après l'envoi, elle
+ * ramène ici (`/imprimer?session=…`) pour choisir les options et payer.
+ */
+export function sameTabUploadHref(token: string) {
+  return `/imprimer/upload?session=${encodeURIComponent(token)}&retour=1`
+}
+
+/**
+ * Session reprise depuis son jeton, au retour de la page d'envoi. Les deux
+ * URL sont reconstruites à l'identique de celles que l'API fournit à la
+ * création : l'API n'a pas besoin d'évoluer pour cette reprise.
+ */
+export function resumedSession(state: SessionState, origin: string): PrintSession {
+  return {
+    token: state.token,
+    email: state.email,
+    status: state.status,
+    expires_at: state.expires_at,
+    upload_url: `${origin}/imprimer/upload?session=${state.token}`,
+    qrcode_url: `${PRINT_API_URL}/sessions/${state.token}/qrcode.png`,
+  }
+}
+
 /** Aperçu avant paiement, protégé par le jeton de session (le code n'existe pas encore pour le client). */
 export function sessionPreviewUrl(token: string, jobId: number) {
   return `${PRINT_API_URL}/sessions/${token}/documents/${jobId}/preview`
