@@ -23,6 +23,9 @@ import { logout } from '@/features/auth/actions'
 
 const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Tableau de bord', Icon: Settings2 },
+  // Affiché seulement aux comptes autorisés (voir features/impressions/access.ts) :
+  // cette section donne accès aux documents des clients et aux points d'impression.
+  { href: '/admin/impressions', label: 'Impressions', Icon: Printer, restreint: true },
   { href: '/admin/points', label: 'Sites Campus', Icon: MapPin },
   { href: '/admin/machines', label: 'Machines', Icon: Server },
   { href: '/admin/gestion', label: 'Gestion', Icon: Network },
@@ -44,6 +47,10 @@ function resolvePageTitle(pathname: string): string {
   if (pathname === '/admin/faq/nouveau') return 'Ajouter une question'
   if (pathname.startsWith('/admin/faq/')) return 'Modifier la question'
   if (pathname.startsWith('/admin/faq')) return 'FAQ'
+  if (pathname.startsWith('/admin/impressions/points')) return "Points d'impression"
+  if (pathname.startsWith('/admin/impressions/code')) return 'Code de retrait'
+  if (pathname.startsWith('/admin/impressions/documents')) return 'Document'
+  if (pathname.startsWith('/admin/impressions')) return 'Impressions'
   if (pathname.startsWith('/admin/messages')) return 'Messages reçus'
   if (pathname.startsWith('/admin/tarifs')) return 'Tarifs'
   if (pathname.startsWith('/admin/parametres')) return 'Paramètres du site'
@@ -54,16 +61,20 @@ function resolvePageTitle(pathname: string): string {
 export function AdminShell({
   user,
   children,
+  peutVoirImpressions = true,
 }: {
   // Projection explicite : aucun objet brut de la base ne traverse la frontière client.
   user: AdminUser
   children: React.ReactNode
+  /** Décidé sur le serveur : la liste des comptes autorisés ne descend pas ici. */
+  peutVoirImpressions?: boolean
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const pageTitle = resolvePageTitle(pathname)
+  const navLinks = NAV_LINKS.filter((link) => peutVoirImpressions || !link.restreint)
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -99,7 +110,7 @@ export function AdminShell({
           </div>
 
           <nav className="mt-4 space-y-1 px-3">
-            {NAV_LINKS.map(({ href, label, Icon }) => (
+            {navLinks.map(({ href, label, Icon }) => (
               <Link
                 key={href}
                 href={href}

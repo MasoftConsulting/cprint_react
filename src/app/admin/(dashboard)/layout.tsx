@@ -5,6 +5,7 @@ import { FlashToast } from '@/components/flash-toast'
 import { ToastProvider } from '@/components/ui/toast'
 import { requireUser } from '@/lib/dal'
 import { AdminShell } from '@/features/auth/components/admin-shell'
+import { canAdminPrints } from '@/features/impressions/access'
 
 export const metadata: Metadata = {
   title: 'Admin',
@@ -25,7 +26,7 @@ export default async function AdminDashboardLayout({
 
   return (
     <ToastProvider>
-      <AdminShell user={user}>
+      <AdminShell user={user} peutVoirImpressions={canAdminPrints(user)}>
         {/* `useSearchParams` impose une frontière Suspense. */}
         <Suspense fallback={null}>
           <FlashToast />
