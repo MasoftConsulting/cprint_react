@@ -3,6 +3,11 @@
 Portage du site Laravel `campus-print-laravel` vers Next.js 16 (App Router) avec
 Supabase comme base de données. Le design est repris à l'identique.
 
+> **Pour exploiter le service d'impression** — ouvrir un point, déployer,
+> diagnostiquer, maintenir — lire le manuel du dépôt voisin :
+> [`campus-print/MANUEL.md`](../campus-print/MANUEL.md). Ce README-ci ne
+> couvre que le site.
+
 ## Mise en route
 
 ### 1. Créer le projet Supabase
