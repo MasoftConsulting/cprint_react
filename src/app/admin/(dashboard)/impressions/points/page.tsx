@@ -49,16 +49,23 @@ async function AgentsList() {
       )}
 
       <div className="surface-card bg-secondary/40 p-6 text-sm">
-        <p className="font-medium">Après avoir créé un point</p>
-        <p className="mt-1 text-muted-foreground">
-          Sur le PC relié à l&apos;imprimante, en administrateur :
+        <p className="font-medium">Ce que fait l&apos;installeur sur le PC du magasin</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+          <li>vérifie que la centrale répond et que le jeton du point est valide ;</li>
+          <li>installe Python 3.12 s&apos;il manque ;</li>
+          <li>télécharge le code de l&apos;agent depuis la centrale, dans C:\campus-print ;</li>
+          <li>écrit les réglages, choisit un port libre, désactive la mise en veille ;</li>
+          <li>crée la tâche planifiée, ouvre le pare-feu, puis contrôle que tout répond.</li>
+        </ol>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Le PC n&apos;a besoin ni d&apos;un compte GitHub, ni d&apos;une copie du projet : le
+          jeton du point suffit à récupérer le code. Un PC peut piloter plusieurs imprimantes —
+          un point, un jeton et un port par imprimante.
         </p>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-background px-4 py-3 text-xs">
-{`cd C:\\campus-print\\deploy
-.\\installer-agent.ps1 -Nom <nom du point> -Imprimante <IP> -Jeton <jeton ci-dessus>`}
-        </pre>
         <p className="mt-2 text-xs text-muted-foreground">
-          Une imprimante par point, un port par imprimante : le script s&apos;en charge.
+          Mise à jour d&apos;un point déjà installé :{' '}
+          <code>C:\campus-print\deploy\mettre-a-jour-agent.ps1</code> (ajoutez{' '}
+          <code>-Verifier</code> pour regarder sans rien changer).
         </p>
       </div>
     </div>

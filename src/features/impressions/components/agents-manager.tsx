@@ -1,7 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
-import { KeyRound, Plus, Trash2 } from 'lucide-react'
+import { useActionState, useState } from 'react'
+import { Check, Copy, Download, KeyRound, Plus, Trash2 } from 'lucide-react'
 
 import { FieldError } from '@/components/ui/field-error'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -11,19 +11,28 @@ import {
   createAgent,
   deleteAgent,
   rotateAgentToken,
+  type AgentFormState,
 } from '@/features/impressions/actions'
 import { formatCentralDate } from '@/features/impressions/format'
-import type { PrintAgent } from '@/features/impressions/types'
+import {
+  commandeDInstallation,
+  nomDuFichierInstalleur,
+  scriptDInstallation,
+} from '@/features/impressions/installeur'
+import type { AgentCredentials, PrintAgent } from '@/features/impressions/types'
 
 /**
- * Création, renouvellement de jeton et suppression d'un point d'impression.
+ * Création, installation, renouvellement de jeton et suppression d'un point.
  *
- * Le jeton s'affiche **dans la page**, pas en notification : la centrale n'en
- * garde que l'empreinte, il faut donc avoir le temps de le recopier dans le
- * fichier de réglages de l'agent. Il disparaît au rechargement suivant.
+ * Le jeton n'existe que le temps de ce retour d'action : la centrale n'en
+ * garde que l'empreinte. C'est donc ici, et nulle part ailleurs, que se
+ * fabrique l'installeur du point — d'où le panneau qui s'ouvre après une
+ * création, et qui disparaît au rechargement suivant.
  */
 
-function TokenPanel({ state }: { state: FormState }) {
+const initialAgentState: AgentFormState = initialFormState
+
+function Message({ state }: { state: FormState }) {
   if (state.status === 'idle' || !state.message) return null
 
   return (
@@ -36,27 +45,169 @@ function TokenPanel({ state }: { state: FormState }) {
       )}
     >
       <p className="font-medium break-words">{state.message}</p>
-      {state.status === 'success' && state.message.includes(':') && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Recopiez la valeur ci-dessus dans <code>agent\.env</code> du point, ou passez-la au
-          script : <code>installer-agent.ps1 -Nom … -Jeton …</code>. Elle ne sera plus affichée.
-        </p>
+    </div>
+  )
+}
+
+function BoutonCopier({ texte, libelle }: { texte: string; libelle: string }) {
+  const [copie, setCopie] = useState(false)
+  const [echec, setEchec] = useState(false)
+
+  async function copier() {
+    try {
+      await navigator.clipboard.writeText(texte)
+      setCopie(true)
+      setEchec(false)
+      window.setTimeout(() => setCopie(false), 2500)
+    } catch {
+      // Le presse-papier est refusé hors HTTPS, ou par une politique du
+      // navigateur : on le dit, plutôt que de laisser croire à une copie.
+      setEchec(true)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={copier}
+        className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary/10 px-4 text-xs font-semibold text-primary hover:bg-primary/15"
+      >
+        {copie ? (
+          <Check className="h-3.5 w-3.5" aria-hidden />
+        ) : (
+          <Copy className="h-3.5 w-3.5" aria-hidden />
+        )}
+        {copie ? 'Copié' : libelle}
+      </button>
+      {echec && (
+        <span className="text-xs text-destructive">
+          Copie refusée par le navigateur : sélectionnez le texte à la main.
+        </span>
       )}
     </div>
   )
 }
 
+/**
+ * Ce qu'il faut pour installer le point sur place : le fichier, la commande,
+ * et le jeton en clair en dernier recours.
+ */
+function PanneauInstallation({ credentials }: { credentials: AgentCredentials }) {
+  const fichier = nomDuFichierInstalleur(credentials)
+  const commande = commandeDInstallation(credentials)
+  const { printerIp, central } = credentials
+
+  function telecharger() {
+    const contenu = scriptDInstallation(credentials)
+    // BOM UTF-8 : Windows PowerShell 5.1 lit un fichier sans BOM comme de
+    // l'ANSI, et les accents de la date de génération y deviendraient illisibles.
+    const blob = new Blob([`﻿${contenu}`], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const lien = document.createElement('a')
+    lien.href = url
+    lien.download = fichier
+    document.body.appendChild(lien)
+    lien.click()
+    lien.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  if (!central) {
+    return (
+      <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <p className="font-medium">Adresse de la centrale inconnue.</p>
+        <p className="mt-1 text-xs">
+          Renseignez <code>NEXT_PUBLIC_PRINT_API_URL</code> pour que l&apos;installeur sache qui
+          appeler. Le jeton reste affiché ci-dessus : recopiez-le maintenant.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+      <div>
+        <p className="text-sm font-semibold">Installer ce point sur place</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Le fichier et la commande contiennent le jeton de ce point. Il ne sera plus affiché
+          après le rechargement de cette page.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={telecharger}
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+        >
+          <Download className="h-4 w-4" aria-hidden />
+          Télécharger {fichier}
+        </button>
+        <p className="text-xs text-muted-foreground">
+          À copier sur le PC relié à l&apos;imprimante. Puis, dans PowerShell{' '}
+          <strong>en administrateur</strong>, depuis le dossier du fichier :
+        </p>
+        <pre className="overflow-x-auto rounded-lg bg-background px-3 py-2 text-xs">
+          {`powershell -ExecutionPolicy Bypass -File .\\${fichier}`}
+        </pre>
+      </div>
+
+      <details className="rounded-lg bg-background/60 p-3">
+        <summary className="cursor-pointer text-xs font-semibold">
+          Ou en une commande, sans fichier
+        </summary>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Pratique en dépannage. Le jeton part alors dans l&apos;historique de la console : pour
+          une installation normale, préférez le fichier.
+        </p>
+        <pre className="mt-2 max-h-40 overflow-auto rounded-lg bg-background px-3 py-2 text-[11px] break-all whitespace-pre-wrap">
+          {commande}
+        </pre>
+        <div className="mt-2">
+          <BoutonCopier texte={commande} libelle="Copier la commande" />
+        </div>
+      </details>
+
+      {!printerIp && (
+        <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+          Aucune IP d&apos;imprimante n&apos;a été indiquée : le script la demandera sur place.
+          Pour l&apos;éviter, renseignez-la à la création du point.
+        </p>
+      )}
+
+      <details className="rounded-lg bg-background/60 p-3">
+        <summary className="cursor-pointer text-xs font-semibold">
+          Voir le jeton en clair
+        </summary>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Utile pour un point déjà installé : il suffit de corriger{' '}
+          <code>AGENT_TOKEN</code> dans <code>agent\{credentials.name}.env</code>, puis de
+          redémarrer l&apos;agent.
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-background px-3 py-2 text-xs break-all whitespace-pre-wrap">
+          {credentials.token}
+        </pre>
+        <div className="mt-2">
+          <BoutonCopier texte={credentials.token} libelle="Copier le jeton" />
+        </div>
+      </details>
+    </div>
+  )
+}
+
 export function CreateAgentForm() {
-  const [state, formAction] = useActionState(createAgent, initialFormState)
+  const [state, formAction] = useActionState(createAgent, initialAgentState)
 
   return (
     <form action={formAction} className="surface-card p-6 sm:p-8">
       <h2 className="font-display text-lg font-bold">Ajouter un point d&apos;impression</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Le jeton créé ici est celui que l&apos;agent utilisera pour parler à la centrale.
+        Une imprimante par point. À la création, l&apos;administration remet un installeur prêt à
+        lancer sur le PC du magasin.
       </p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="agent-name" className="text-sm font-medium text-muted-foreground">
             Nom du point
@@ -72,7 +223,7 @@ export function CreateAgentForm() {
         </div>
         <div>
           <label htmlFor="agent-printer" className="text-sm font-medium text-muted-foreground">
-            Imprimante (facultatif)
+            Modèle (facultatif)
           </label>
           <input
             id="agent-printer"
@@ -82,6 +233,23 @@ export function CreateAgentForm() {
           />
           <FieldError messages={state.errors?.printer_label} />
         </div>
+        <div>
+          <label htmlFor="agent-ip" className="text-sm font-medium text-muted-foreground">
+            IP de l&apos;imprimante
+          </label>
+          <input
+            id="agent-ip"
+            name="printer_ip"
+            inputMode="numeric"
+            placeholder="192.168.1.21"
+            className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 outline-none focus:border-primary"
+          />
+          <FieldError messages={state.errors?.printer_ip} />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sur le réseau du magasin. Sert à pré-remplir l&apos;installeur ; la centrale ne la
+            conserve pas.
+          </p>
+        </div>
       </div>
 
       <SubmitButton pendingLabel="Création…" className="mt-4">
@@ -89,13 +257,14 @@ export function CreateAgentForm() {
         Créer le point
       </SubmitButton>
 
-      <TokenPanel state={state} />
+      <Message state={state} />
+      {state.credentials && <PanneauInstallation credentials={state.credentials} />}
     </form>
   )
 }
 
 export function AgentRow({ agent }: { agent: PrintAgent }) {
-  const [rotateState, rotateAction] = useActionState(rotateAgentToken, initialFormState)
+  const [rotateState, rotateAction] = useActionState(rotateAgentToken, initialAgentState)
   const [deleteState, deleteAction] = useActionState(deleteAgent, initialFormState)
   const enLigne = agent.last_status === 'ONLINE'
 
@@ -157,8 +326,9 @@ export function AgentRow({ agent }: { agent: PrintAgent }) {
         </form>
       </div>
 
-      <TokenPanel state={rotateState} />
-      <TokenPanel state={deleteState} />
+      <Message state={rotateState} />
+      {rotateState.credentials && <PanneauInstallation credentials={rotateState.credentials} />}
+      <Message state={deleteState} />
     </article>
   )
 }

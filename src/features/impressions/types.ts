@@ -38,6 +38,23 @@ export type PrintAgent = {
   created_at: string
 }
 
+/**
+ * De quoi installer un point sur place, remis **une seule fois**.
+ *
+ * La centrale ne garde que l'empreinte du jeton : elle ne pourra donc jamais
+ * regénérer un installeur pour un point existant. C'est pourquoi ces valeurs
+ * ne vivent que le temps d'un retour de Server Action, et servent aussitôt à
+ * fabriquer le script d'installation.
+ */
+export type AgentCredentials = {
+  name: string
+  token: string
+  /** URL de la centrale telle que le PC du point devra l'appeler. */
+  central: string
+  /** IP de l'imprimante, connue à la création seulement. */
+  printerIp?: string
+}
+
 export type PrintStats = {
   documents_par_etat: Partial<Record<JobStatus, number>>
   dernieres_24h: Periode

@@ -6,8 +6,18 @@ import { z } from 'zod'
 
 import { type FormState } from '@/lib/form-state'
 import { requirePrintAdmin } from './access'
-import { callCentral, PrintAdminError } from './client'
+import { callCentral, centralPublicUrl, PrintAdminError } from './client'
 import { agentNameSchema, codeSchema, jobIdSchema } from './schema'
+import type { AgentCredentials } from './types'
+
+/**
+ * État des formulaires qui créent ou renouvellent un point.
+ *
+ * `credentials` ne porte le jeton que sur ce seul aller-retour : il sert à
+ * fabriquer l'installeur dans la page, puis disparaît au rechargement. La
+ * centrale ne pourra pas le redonner — elle n'en garde que l'empreinte.
+ */
+export type AgentFormState = FormState & { credentials?: AgentCredentials }
 
 /**
  * Actions de l'administration des impressions.
@@ -75,12 +85,16 @@ export async function resendCode(_prev: FormState, formData: FormData): Promise<
   }
 }
 
-export async function createAgent(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function createAgent(
+  _prev: AgentFormState,
+  formData: FormData,
+): Promise<AgentFormState> {
   await requirePrintAdmin()
 
   const parsed = agentNameSchema.safeParse({
     name: formData.get('name'),
     printer_label: formData.get('printer_label'),
+    printer_ip: formData.get('printer_ip'),
   })
   if (!parsed.success) {
     return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
@@ -94,17 +108,27 @@ export async function createAgent(_prev: FormState, formData: FormData): Promise
       method: 'POST',
     })
     revalidatePath('/admin/impressions/points')
-    // Le jeton n'est montré qu'ici : la centrale n'en garde que l'empreinte.
+    // Le jeton ne passe qu'ici : la centrale n'en garde que l'empreinte, et
+    // c'est de ce retour que la page tire l'installeur du point.
     return {
       status: 'success',
-      message: `Point « ${parsed.data.name} » créé. Jeton à recopier maintenant, il ne sera plus affiché : ${token}`,
+      message: `Point « ${parsed.data.name} » créé.`,
+      credentials: {
+        name: parsed.data.name,
+        token,
+        central: centralPublicUrl,
+        printerIp: parsed.data.printer_ip || undefined,
+      },
     }
   } catch (cause) {
     return echec(cause, "Le point n'a pas pu être créé.")
   }
 }
 
-export async function rotateAgentToken(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function rotateAgentToken(
+  _prev: AgentFormState,
+  formData: FormData,
+): Promise<AgentFormState> {
   await requirePrintAdmin()
 
   const parsed = agentNameSchema.shape.name.safeParse(formData.get('name'))
@@ -116,9 +140,12 @@ export async function rotateAgentToken(_prev: FormState, formData: FormData): Pr
       { method: 'POST' },
     )
     revalidatePath('/admin/impressions/points')
+    // Pas d'IP d'imprimante ici : un point dont on renouvelle le jeton est
+    // déjà installé, son fichier de réglages porte déjà la bonne adresse.
     return {
       status: 'success',
-      message: `Nouveau jeton pour « ${parsed.data} », à recopier maintenant : ${token}`,
+      message: `Nouveau jeton pour « ${parsed.data} ».`,
+      credentials: { name: parsed.data, token, central: centralPublicUrl },
     }
   } catch (cause) {
     return echec(cause, 'Le jeton n’a pas pu être renouvelé.')

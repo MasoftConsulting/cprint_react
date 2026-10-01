@@ -22,6 +22,21 @@ const ADMIN_TOKEN = process.env.PRINT_ADMIN_TOKEN ?? ''
 /** L'administration des impressions est-elle configurée ? */
 export const isPrintAdminConfigured = API_URL.length > 0 && ADMIN_TOKEN.length > 0
 
+/**
+ * L'adresse de la centrale telle qu'un PC de point d'impression doit
+ * l'appeler, pour l'inscrire dans un script d'installation.
+ *
+ * `NEXT_PUBLIC_PRINT_API_URL` d'abord : c'est l'URL publique, celle que le
+ * navigateur d'un client utilise déjà, donc celle qui est joignable depuis
+ * n'importe quel magasin. `PRINT_API_URL` peut être une adresse interne,
+ * utile à ce serveur et inutilisable ailleurs.
+ */
+export const centralPublicUrl = (
+  process.env.NEXT_PUBLIC_PRINT_API_URL ??
+  process.env.PRINT_API_URL ??
+  ''
+).replace(/\/$/, '')
+
 export class PrintAdminError extends Error {
   readonly status: number
 
