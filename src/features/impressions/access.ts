@@ -23,10 +23,31 @@ function allowedEmails(): string[] {
     .filter(Boolean)
 }
 
-export function canAdminPrints(user: AdminUser): boolean {
+/** Même règle, à partir d'une adresse seule : sert à juger d'autres comptes que le sien. */
+export function canEmailAdminPrints(email: string): boolean {
   const allowed = allowedEmails()
   if (allowed.length === 0) return true
-  return allowed.includes((user.email ?? '').toLowerCase())
+  return allowed.includes(email.trim().toLowerCase())
+}
+
+export function canAdminPrints(user: AdminUser): boolean {
+  return canEmailAdminPrints(user.email ?? '')
+}
+
+/**
+ * La liste blanche est-elle en service ?
+ *
+ * `false` signifie que **tout** compte admin accède aux impressions. Sans
+ * cette distinction, un écran qui affiche « autorisé » partout laisserait
+ * croire à un droit accordé compte par compte, alors que c'est le repli.
+ */
+export function isPrintAccessRestricted(): boolean {
+  return allowedEmails().length > 0
+}
+
+/** Les adresses autorisées, en minuscules. Pour les comparer aux comptes réels. */
+export function printAllowedEmails(): string[] {
+  return allowedEmails()
 }
 
 /**

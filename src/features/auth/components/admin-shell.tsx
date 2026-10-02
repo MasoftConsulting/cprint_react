@@ -14,6 +14,7 @@ import {
   Server,
   HelpCircle,
   Settings2,
+  Users,
   Zap,
 } from 'lucide-react'
 
@@ -32,6 +33,7 @@ const NAV_LINKS = [
   { href: '/admin/tarifs', label: 'Tarifs', Icon: CreditCard },
   { href: '/admin/faq', label: 'FAQ', Icon: HelpCircle },
   { href: '/admin/messages', label: 'Messages', Icon: MessageSquare },
+  { href: '/admin/utilisateurs', label: 'Utilisateurs', Icon: Users },
   { href: '/admin/parametres', label: 'Paramètres', Icon: Zap },
 ]
 
@@ -53,6 +55,7 @@ function resolvePageTitle(pathname: string): string {
   if (pathname.startsWith('/admin/impressions')) return 'Impressions'
   if (pathname.startsWith('/admin/messages')) return 'Messages reçus'
   if (pathname.startsWith('/admin/tarifs')) return 'Tarifs'
+  if (pathname.startsWith('/admin/utilisateurs')) return 'Utilisateurs du back-office'
   if (pathname.startsWith('/admin/parametres')) return 'Paramètres du site'
   if (pathname.startsWith('/admin/profil')) return 'Mon profil'
   return 'Tableau de bord'
