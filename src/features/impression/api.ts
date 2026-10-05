@@ -188,6 +188,43 @@ export function getSession(token: string) {
   return request<SessionState>(`/sessions/${token}`, { cache: 'no-store' })
 }
 
+/**
+ * Limites de téléversement, telles que la centrale les applique.
+ *
+ * Elles sont lues et non codées en dur : la taille maximale est une variable
+ * d'environnement de la centrale (`MAX_PDF_SIZE_MB`). Une valeur figée ici
+ * finirait par mentir au client le jour où elle change — et un plafond annoncé
+ * faux est pire que pas de plafond annoncé.
+ */
+export type UploadLimits = {
+  maxFileSizeMb: number
+  maxFiles: number
+}
+
+/**
+ * Repli si la centrale ne renvoie pas encore ces champs (version antérieure)
+ * ou si l'appel échoue : ce sont ses propres valeurs par défaut. Le contrôle
+ * du navigateur n'est qu'un confort, le serveur reste seul juge.
+ */
+export const DEFAULT_UPLOAD_LIMITS: UploadLimits = { maxFileSizeMb: 25, maxFiles: 10 }
+
+export async function getUploadLimits(): Promise<UploadLimits> {
+  try {
+    const config = await request<{
+      max_file_size_mb?: number
+      max_files_per_session?: number
+    }>('/payments/config/pricing')
+    return {
+      maxFileSizeMb: config.max_file_size_mb ?? DEFAULT_UPLOAD_LIMITS.maxFileSizeMb,
+      maxFiles: config.max_files_per_session ?? DEFAULT_UPLOAD_LIMITS.maxFiles,
+    }
+  } catch {
+    // Jamais bloquant : sans ces valeurs le formulaire reste utilisable, et
+    // c'est la centrale qui tranchera à l'envoi.
+    return DEFAULT_UPLOAD_LIMITS
+  }
+}
+
 /** Téléversement depuis le téléphone, après scan du QR code. */
 export function uploadToSession(token: string, files: File[]) {
   const form = new FormData()

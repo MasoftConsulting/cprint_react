@@ -1,18 +1,22 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle, ArrowRight, CheckCircle2, FileText, Loader2, Upload } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import {
+  DEFAULT_UPLOAD_LIMITS,
   formatSize,
+  getUploadLimits,
   isPrintApiConfigured,
   PrintApiError,
   uploadToSession,
+  type UploadLimits,
   type UploadResult,
 } from '../api'
+import { trierFichiers } from '../upload-rules'
 
 /**
  * Page ouverte sur le téléphone après scan du QR code affiché sur la borne.
@@ -28,6 +32,7 @@ import {
 
 // Les fichiers Office sont convertis en PDF par l'API dès l'envoi (LibreOffice).
 const ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp'
+
 
 /**
  * Lit le jeton de session dans l'URL du QR code (`?session=...`).
@@ -59,7 +64,23 @@ export function UploadForm({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done'>('idle')
   const [result, setResult] = useState<UploadResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Fichiers écartés à la sélection, avec la raison. Distincts de `error`,
+  // qui concerne l'envoi lui-même.
+  const [ecartes, setEcartes] = useState<string[]>([])
+  // Valeurs par défaut d'emblée : la mention est ainsi affichée dès le premier
+  // rendu, sans attendre la centrale ni clignoter.
+  const [limites, setLimites] = useState<UploadLimits>(DEFAULT_UPLOAD_LIMITS)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let vivant = true
+    getUploadLimits().then((valeurs) => {
+      if (vivant) setLimites(valeurs)
+    })
+    return () => {
+      vivant = false
+    }
+  }, [])
 
   if (!token) {
     return (
@@ -118,7 +139,9 @@ export function UploadForm({
           accept={ACCEPT}
           className="sr-only"
           onChange={(event) => {
-            setFiles(Array.from(event.target.files ?? []))
+            const tri = trierFichiers(Array.from(event.target.files ?? []), limites)
+            setFiles(tri.retenus)
+            setEcartes(tri.ecartes)
             setError(null)
           }}
         />
@@ -134,8 +157,31 @@ export function UploadForm({
           <span className="text-sm text-muted-foreground">
             PDF, Word, Excel, PowerPoint ou photos — vous pouvez en sélectionner plusieurs
           </span>
+          <span className="text-xs text-muted-foreground">
+            {limites.maxFileSizeMb} Mo maximum par fichier, {limites.maxFiles} fichiers par envoi
+          </span>
         </button>
       </div>
+
+      {ecartes.length > 0 && (
+        <Notice
+          tone="warning"
+          title={
+            ecartes.length === 1
+              ? 'Un fichier a été écarté'
+              : `${ecartes.length} fichiers ont été écartés`
+          }
+        >
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            {ecartes.map((raison) => (
+              <li key={raison}>{raison}</li>
+            ))}
+          </ul>
+          {files.length > 0 && (
+            <p className="mt-2">Les autres peuvent être envoyés normalement.</p>
+          )}
+        </Notice>
+      )}
 
       {files.length > 0 && (
         <ul className="space-y-2">
