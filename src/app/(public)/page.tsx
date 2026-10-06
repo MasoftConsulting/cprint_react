@@ -74,10 +74,10 @@ export default async function HomePage() {
           </div>
           <div className="overflow-hidden rounded-3xl border border-primary-foreground/15 shadow-[var(--shadow-elegant)]">
             <Image
-              src="/images/hero-impression.jpg"
-              alt="Une utilisatrice relit son document fraîchement imprimé devant un photocopieur Sharp"
-              width={1600}
-              height={1000}
+              src="/images/hero-borne.jpg"
+              alt="Point Campus Print sur un campus : deux photocopieurs Sharp en libre-service sous un abri bleu, une étudiante et un étudiant au téléphone"
+              width={1536}
+              height={960}
               priority
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-full w-full object-cover"
