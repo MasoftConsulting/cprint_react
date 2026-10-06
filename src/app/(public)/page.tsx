@@ -74,8 +74,8 @@ export default async function HomePage() {
           </div>
           <div className="overflow-hidden rounded-3xl border border-primary-foreground/15 shadow-[var(--shadow-elegant)]">
             <Image
-              src="/images/hero-borne.jpg"
-              alt="Borne Campus Print équipée d'un photocopieur Sharp sur un campus universitaire"
+              src="/images/hero-impression.jpg"
+              alt="Une utilisatrice relit son document fraîchement imprimé devant un photocopieur Sharp"
               width={1600}
               height={1000}
               priority
