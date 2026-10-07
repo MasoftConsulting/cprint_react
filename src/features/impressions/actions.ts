@@ -179,7 +179,7 @@ export async function deleteAgent(_prev: FormState, formData: FormData): Promise
 
 // --- Comptes à crédit --------------------------------------------------------
 // Des adresses qui impriment sans payer, sur un solde de pages acheté d'avance.
-// Le solde est en pages noir & blanc : une page couleur en consomme 2, et c'est
+// Le solde est en pages noir & blanc : une page couleur en consomme davantage, et c'est
 // la centrale qui fait ce calcul — jamais cet écran.
 
 export async function createCreditAccount(

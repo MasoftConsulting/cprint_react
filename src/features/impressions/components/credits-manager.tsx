@@ -19,7 +19,7 @@ import type { CreditAccount } from '@/features/impressions/types'
 /**
  * Comptes à crédit : ouverture, recharge, suspension.
  *
- * Le solde est en **pages noir & blanc**. Une page couleur en consomme 2, et
+ * Le solde est en **pages noir & blanc**. Une page couleur en consomme davantage, et
  * ce calcul appartient à la centrale — cet écran n'en fait aucun, il se
  * contente d'afficher ce qu'elle renvoie.
  */
@@ -92,7 +92,8 @@ export function CreateCreditForm() {
           />
           <FieldError messages={state.errors?.pages} />
           <p className="mt-1 text-xs text-muted-foreground">
-            En pages noir &amp; blanc. Une page couleur en consomme 2.
+            En pages noir &amp; blanc. Une page couleur en consomme davantage, dans le
+            rapport de vos tarifs.
           </p>
         </div>
       </div>

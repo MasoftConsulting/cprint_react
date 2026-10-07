@@ -155,7 +155,8 @@ async function Historique({ email }: { email: string }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Le solde est en pages noir &amp; blanc : une page couleur en consomme 2. La colonne
+        Le solde est en pages noir &amp; blanc : une page couleur en consomme davantage, dans le
+        rapport de vos tarifs. La colonne
         « Solde après » est reconstituée depuis le solde actuel, en remontant les mouvements.
       </p>
     </div>

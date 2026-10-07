@@ -41,7 +41,8 @@ export const agentNameSchema = z.object({
 
 /**
  * Compte à crédit. Le solde est en pages noir & blanc : une page couleur en
- * consomme 2, le calcul est fait par la centrale.
+ * consomme davantage, dans le rapport des tarifs. Le calcul est fait par la
+ * centrale, jamais ici.
  */
 export const creditAccountSchema = z.object({
   email: z

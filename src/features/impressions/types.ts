@@ -153,7 +153,7 @@ export type Expediteur = {
 export type CreditAccount = {
   email: string
   label: string | null
-  /** Solde en pages noir & blanc. Une page couleur en consomme 2. */
+  /** Solde en pages noir & blanc. Une page couleur en consomme davantage. */
   pages_balance: number
   active: boolean
   mouvements: number
