@@ -3,6 +3,7 @@ import 'server-only'
 import { callCentral } from './client'
 import type {
   CodeDetail,
+  Expediteur,
   JobEvent,
   PrintAgent,
   PrintJob,
@@ -42,4 +43,24 @@ export function getPrintAgents() {
 
 export function lookupCode(code: string) {
   return callCentral<CodeDetail>(`/admin/codes/${encodeURIComponent(code.trim())}`)
+}
+
+/**
+ * Activité par expéditeur, du plus gros consommateur au plus petit.
+ *
+ * `depuis` et `jusqua` sont des dates `AAAA-MM-JJ` appliquées à la date
+ * d'envoi, bornes incluses. `detail: false` n'apporte que les totaux : à
+ * utiliser dès qu'on n'affiche pas la liste des documents, elle pèse.
+ */
+export function getExpediteurs(options: {
+  depuis?: string
+  jusqua?: string
+  detail?: boolean
+} = {}) {
+  const query = new URLSearchParams()
+  if (options.depuis) query.set('depuis', options.depuis)
+  if (options.jusqua) query.set('jusqua', options.jusqua)
+  if (options.detail === false) query.set('detail', 'false')
+  const suffixe = query.size > 0 ? `?${query}` : ''
+  return callCentral<Expediteur[]>(`/admin/expediteurs${suffixe}`)
 }

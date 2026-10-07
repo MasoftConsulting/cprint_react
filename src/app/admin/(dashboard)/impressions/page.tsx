@@ -93,6 +93,22 @@ async function Overview() {
 
       <section className="surface-card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold">Activité par expéditeur</h2>
+          <Link
+            href="/admin/impressions/expediteurs"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Voir et exporter
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Qui envoie quoi, ce qui est réellement sorti des machines, ce que cela a rapporté.
+          Filtrable par période et exportable en CSV pour analyse.
+        </p>
+      </section>
+
+      <section className="surface-card p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-lg font-bold">Points d&apos;impression</h2>
           <Link
             href="/admin/impressions/points"

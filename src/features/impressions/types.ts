@@ -104,3 +104,47 @@ export type CodeDetail = {
     consomme: boolean
   } | null
 }
+
+/** Un document, tel qu'il apparaît dans l'activité d'un expéditeur. */
+export type DocumentExpediteur = {
+  id: number
+  fichier: string
+  etat: JobStatus
+  pages: number
+  copies: number
+  /** `pages x copies`, et 0 tant que rien n'est sorti : c'est ce qui est facturé. */
+  pages_sorties: number
+  couleur: string
+  recto_verso: string
+  taille_octets: number
+  envoye_le: string
+  imprime_le: string | null
+  expire_le: string
+  /** Point d'impression où le document est sorti, s'il est sorti. */
+  point: string | null
+  erreur: string | null
+}
+
+/**
+ * Activité d'une adresse d'envoi.
+ *
+ * `pages_envoyees` compte les pages reçues, `pages_imprimees` compte
+ * `pages x copies` de ce qui est réellement sorti. Les deux diffèrent dès
+ * qu'un document est tiré en plusieurs exemplaires, et c'est la seconde qui
+ * correspond à la facture.
+ */
+export type Expediteur = {
+  email: string
+  documents: number
+  pages_envoyees: number
+  documents_imprimes: number
+  pages_imprimees: number
+  echecs: number
+  expires: number
+  paiements: number
+  encaisse: number
+  devise: string | null
+  premier_envoi: string
+  dernier_envoi: string
+  documents_detail: DocumentExpediteur[]
+}
