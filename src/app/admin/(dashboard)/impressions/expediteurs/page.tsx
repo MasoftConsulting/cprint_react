@@ -216,7 +216,7 @@ export default async function ExpediteursPage({
           className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           <Download className="h-4 w-4" aria-hidden />
-          Exporter en CSV
+          Exporter en Excel
         </a>
       </header>
 

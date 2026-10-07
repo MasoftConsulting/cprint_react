@@ -103,7 +103,7 @@ async function Overview() {
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Qui envoie quoi, ce qui est réellement sorti des machines, ce que cela a rapporté.
-          Filtrable par période et exportable en CSV pour analyse.
+          Filtrable par période et exportable en Excel pour analyse.
         </p>
       </section>
 
