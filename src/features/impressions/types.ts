@@ -148,3 +148,35 @@ export type Expediteur = {
   dernier_envoi: string
   documents_detail: DocumentExpediteur[]
 }
+
+/** Un compte à crédit : une adresse qui imprime sans payer, sur un solde de pages. */
+export type CreditAccount = {
+  email: string
+  label: string | null
+  /** Solde en pages noir & blanc. Une page couleur en consomme 2. */
+  pages_balance: number
+  active: boolean
+  mouvements: number
+  pages_consommees: number
+  created_at: string
+  updated_at: string
+}
+
+export type CreditMovement = {
+  /** Positif = recharge, négatif = consommation. */
+  pages: number
+  reason: 'TOPUP' | 'PRINT' | 'REFUND' | 'ADJUST'
+  /** Référence du paiement réglé par le crédit, pour une consommation. */
+  reference: string | null
+  note: string | null
+  created_at: string
+}
+
+export type CreditDetail = {
+  email: string
+  label: string | null
+  pages_balance: number
+  active: boolean
+  created_at: string
+  mouvements: CreditMovement[]
+}

@@ -3,6 +3,8 @@ import 'server-only'
 import { callCentral } from './client'
 import type {
   CodeDetail,
+  CreditAccount,
+  CreditDetail,
   Expediteur,
   JobEvent,
   PrintAgent,
@@ -63,4 +65,14 @@ export function getExpediteurs(options: {
   if (options.detail === false) query.set('detail', 'false')
   const suffixe = query.size > 0 ? `?${query}` : ''
   return callCentral<Expediteur[]>(`/admin/expediteurs${suffixe}`)
+}
+
+/** Comptes à crédit, le plus bas solde en tête : ce sont ceux à recharger. */
+export function getCreditAccounts() {
+  return callCentral<CreditAccount[]>('/admin/credits')
+}
+
+/** Solde et historique des mouvements d'un compte. */
+export function getCreditAccount(email: string) {
+  return callCentral<CreditDetail>(`/admin/credits/${encodeURIComponent(email)}`)
 }

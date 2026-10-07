@@ -7,7 +7,13 @@ import { z } from 'zod'
 import { type FormState } from '@/lib/form-state'
 import { requirePrintAdmin } from './access'
 import { callCentral, centralPublicUrl, PrintAdminError } from './client'
-import { agentNameSchema, codeSchema, jobIdSchema } from './schema'
+import {
+  agentNameSchema,
+  codeSchema,
+  creditAccountSchema,
+  creditTopUpSchema,
+  jobIdSchema,
+} from './schema'
 import type { AgentCredentials } from './types'
 
 /**
@@ -168,5 +174,108 @@ export async function deleteAgent(_prev: FormState, formData: FormData): Promise
   return {
     status: 'success',
     message: `Point « ${parsed.data} » supprimé : son jeton ne vaut plus rien.`,
+  }
+}
+
+// --- Comptes à crédit --------------------------------------------------------
+// Des adresses qui impriment sans payer, sur un solde de pages acheté d'avance.
+// Le solde est en pages noir & blanc : une page couleur en consomme 2, et c'est
+// la centrale qui fait ce calcul — jamais cet écran.
+
+export async function createCreditAccount(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requirePrintAdmin()
+
+  const parsed = creditAccountSchema.safeParse({
+    email: formData.get('email'),
+    label: formData.get('label'),
+    pages: formData.get('pages') || 0,
+  })
+  if (!parsed.success) {
+    return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
+  }
+
+  const query = new URLSearchParams({ email: parsed.data.email })
+  if (parsed.data.label) query.set('label', parsed.data.label)
+  if (parsed.data.pages) query.set('pages', String(parsed.data.pages))
+
+  try {
+    await callCentral(`/admin/credits?${query}`, { method: 'POST' })
+    revalidatePath('/admin/impressions/credits')
+    return {
+      status: 'success',
+      message: `Compte ouvert pour ${parsed.data.email}${
+        parsed.data.pages ? ` avec ${parsed.data.pages} page(s).` : '.'
+      }`,
+    }
+  } catch (cause) {
+    return echec(cause, "Le compte n'a pas pu être ouvert.")
+  }
+}
+
+export async function topUpCreditAccount(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requirePrintAdmin()
+
+  const parsed = creditTopUpSchema.safeParse({
+    email: formData.get('email'),
+    pages: formData.get('pages'),
+    note: formData.get('note'),
+  })
+  if (!parsed.success) {
+    return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
+  }
+
+  const query = new URLSearchParams({ pages: String(parsed.data.pages) })
+  if (parsed.data.note) query.set('note', parsed.data.note)
+
+  try {
+    const { pages_balance } = await callCentral<{ pages_balance: number }>(
+      `/admin/credits/${encodeURIComponent(parsed.data.email)}/recharge?${query}`,
+      { method: 'POST' },
+    )
+    revalidatePath('/admin/impressions/credits')
+    const verbe = parsed.data.pages > 0 ? 'Rechargé de' : 'Retiré'
+    return {
+      status: 'success',
+      message: `${verbe} ${Math.abs(parsed.data.pages)} page(s). Nouveau solde : ${pages_balance}.`,
+    }
+  } catch (cause) {
+    return echec(cause, "La recharge n'a pas pu être enregistrée.")
+  }
+}
+
+/**
+ * Suspend ou réactive un compte. Le solde et l'historique sont conservés :
+ * c'est presque toujours ce qu'on veut plutôt qu'une suppression.
+ */
+export async function setCreditAccountActive(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requirePrintAdmin()
+
+  const email = creditTopUpSchema.shape.email.safeParse(formData.get('email'))
+  if (!email.success) return { status: 'error', message: 'Compte inconnu.' }
+  const actif = formData.get('actif') === 'true'
+
+  try {
+    await callCentral(
+      `/admin/credits/${encodeURIComponent(email.data)}/actif?actif=${actif}`,
+      { method: 'POST' },
+    )
+    revalidatePath('/admin/impressions/credits')
+    return {
+      status: 'success',
+      message: actif
+        ? `Compte ${email.data} réactivé.`
+        : `Compte ${email.data} suspendu : il paiera comme un client ordinaire.`,
+    }
+  } catch (cause) {
+    return echec(cause, "Le compte n'a pas pu être modifié.")
   }
 }

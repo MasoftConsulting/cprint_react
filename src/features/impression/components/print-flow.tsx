@@ -16,6 +16,7 @@ import {
   Palette,
   RefreshCw,
   Smartphone,
+  Wallet,
 } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
@@ -287,7 +288,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     if (step !== 'documents' || selected.length === 0) return
 
     let cancelled = false
-    getQuote(selected, colorMode, copies)
+    // L'adresse permet à la centrale de dire si un compte à crédit couvre
+    // l'impression, et combien il restera après.
+    getQuote(selected, colorMode, copies, session?.email ?? null)
       .then((next) => {
         if (!cancelled) setQuoteState({ key: optionsKey, quote: next })
       })
@@ -299,7 +302,10 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     return () => {
       cancelled = true
     }
-  }, [step, selected, colorMode, copies, optionsKey])
+    // `session?.email` en dépendance : c'est elle qui détermine si un compte à
+    // crédit couvre l'impression. L'omettre afficherait un devis de client
+    // payant à quelqu'un qui a du crédit.
+  }, [step, selected, colorMode, copies, optionsKey, session?.email])
 
   // --- Paiement --------------------------------------------------------------
   async function handlePay() {
@@ -744,6 +750,41 @@ function DocumentsStep({
               </span>
             )}
           </div>
+
+          {/* Compte à crédit : ce que l'impression coûte, et ce qu'il restera.
+              Le solde est en pages noir & blanc, une page couleur en consomme
+              2 — d'où un nombre de pages requises parfois supérieur au nombre
+              de pages du document. */}
+          {quote.credit && (
+            <div className="mt-3 border-t border-border/60 pt-3 text-sm">
+              {quote.credit.couvert ? (
+                <>
+                  <p className="font-medium text-emerald-700">
+                    Imprimé sur votre crédit — rien à payer.
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    {quote.credit.pages_requises} page
+                    {quote.credit.pages_requises > 1 ? 's' : ''} déduite
+                    {quote.credit.pages_requises > 1 ? 's' : ''} de vos{' '}
+                    {quote.credit.pages_disponibles} — il vous restera{' '}
+                    <strong>{quote.credit.pages_restantes}</strong> page
+                    {quote.credit.pages_restantes > 1 ? 's' : ''}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-amber-700">Crédit insuffisant.</p>
+                  <p className="mt-1 text-muted-foreground">
+                    {quote.credit.pages_requises} page
+                    {quote.credit.pages_requises > 1 ? 's' : ''} nécessaire
+                    {quote.credit.pages_requises > 1 ? 's' : ''}, il vous en reste{' '}
+                    {quote.credit.pages_disponibles}. Cette impression est à payer
+                    normalement ; votre crédit n&apos;est pas entamé.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -752,6 +793,14 @@ function DocumentsStep({
           <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
             <CreditCard className="h-5 w-5" aria-hidden />
             Payer {formatAmount(quote.amount, quote.currency)}
+          </PrimaryButton>
+        ) : quote?.credit?.couvert ? (
+          // Passe par onPay malgré l'absence de paiement : c'est cet appel qui
+          // débite le crédit et libère le code de retrait. onReady ne ferait ni
+          // l'un ni l'autre.
+          <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
+            <Wallet className="h-5 w-5" aria-hidden />
+            Imprimer sur mon crédit
           </PrimaryButton>
         ) : (
           <PrimaryButton onClick={onReady} disabled={busy || nothingSelected} busy={busy}>

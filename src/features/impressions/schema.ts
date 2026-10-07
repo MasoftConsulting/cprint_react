@@ -38,3 +38,39 @@ export const agentNameSchema = z.object({
     .optional()
     .or(z.literal('')),
 })
+
+/**
+ * Compte à crédit. Le solde est en pages noir & blanc : une page couleur en
+ * consomme 2, le calcul est fait par la centrale.
+ */
+export const creditAccountSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email('Adresse e-mail invalide.')
+    .max(255, 'Deux cent cinquante-cinq caractères au maximum.'),
+  label: z.string().trim().max(80, 'Quatre-vingts caractères au maximum.').optional(),
+  pages: z.coerce
+    .number()
+    .int('Un nombre entier de pages.')
+    .min(0, 'Pas de solde initial négatif.')
+    .max(1_000_000, 'Un million de pages au maximum.')
+    .optional(),
+})
+
+/**
+ * Recharge. Un nombre négatif retire des pages : c'est une correction
+ * comptable, volontairement permise, et la centrale l'accepte même si le solde
+ * passe sous zéro.
+ */
+export const creditTopUpSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  pages: z.coerce
+    .number()
+    .int('Un nombre entier de pages.')
+    .refine((n) => n !== 0, 'Indiquez un nombre de pages différent de zéro.')
+    .min(-1_000_000)
+    .max(1_000_000),
+  note: z.string().trim().max(120, 'Cent vingt caractères au maximum.').optional(),
+})

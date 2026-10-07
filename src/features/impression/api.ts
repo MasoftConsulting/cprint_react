@@ -37,6 +37,11 @@ export type PrintSession = {
   upload_url: string
   qrcode_url: string
   expires_at: string
+  /**
+   * Solde du compte à crédit de cette adresse, en pages noir & blanc.
+   * `null` = client payant ordinaire, c'est le cas général.
+   */
+  credit_pages?: number | null
 }
 
 export type SessionStatus = 'PENDING' | 'FILES_RECEIVED' | 'COMPLETED' | 'EXPIRED'
@@ -54,9 +59,13 @@ export type SessionState = {
   email: string
   documents: PrintDocument[]
   total_pages: number
-  /** `null` tant que le code de retrait n'a pas été remis, c'est-à-dire avant le paiement. */
+  /**
+   * `null` tant que le code de retrait n'a pas été remis — et **toujours
+   * `null` pour un compte à crédit**, dont le code ne part que par e-mail.
+   */
   code: string | null
   expires_at: string
+  credit_pages?: number | null
   warnings: string[]
 }
 
@@ -103,16 +112,33 @@ export type PrintOptions = {
   copies: number
 }
 
+/**
+ * Ce que l'impression coûte au compte à crédit, et ce qu'il restera après.
+ *
+ * Le solde est en pages noir & blanc : `pages_requises` peut donc dépasser le
+ * nombre de pages du document, une page couleur en consommant 2.
+ */
+export type CreditQuote = {
+  pages_disponibles: number
+  pages_requises: number
+  pages_restantes: number
+  /** Faux = solde insuffisant : le client paiera normalement, la totalité. */
+  couvert: boolean
+}
+
 export type Quote = {
   pages: number
   amount: number
   currency: string
+  /** Faux si un compte à crédit couvre l'impression : aucune étape de paiement. */
   payment_required: boolean
+  /** Renseigné seulement si l'adresse correspond à un compte à crédit actif. */
+  credit?: CreditQuote | null
 }
 
 export type Payment = {
   reference: string
-  provider: 'FEDAPAY' | 'SIMULATED'
+  provider: 'FEDAPAY' | 'SIMULATED' | 'CREDIT'
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELED' | 'EXPIRED'
   amount: number
   currency: string
@@ -238,8 +264,17 @@ export function verifyCode(code: string) {
 }
 
 /** Montant à payer pour cette sélection — même formule que le paiement lui-même. */
-export function getQuote(job_ids: number[], color_mode: ColorMode, copies: number) {
-  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies })
+/**
+ * `email` permet à la centrale de dire si un compte à crédit couvre
+ * l'impression. Sans elle, le devis est celui d'un client payant.
+ */
+export function getQuote(
+  job_ids: number[],
+  color_mode: ColorMode,
+  copies: number,
+  email?: string | null,
+) {
+  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email })
 }
 
 export function createPayment(options: PrintOptions, email: string | null) {

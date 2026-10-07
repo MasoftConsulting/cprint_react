@@ -93,6 +93,22 @@ async function Overview() {
 
       <section className="surface-card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold">Comptes à crédit</h2>
+          <Link
+            href="/admin/impressions/credits"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Gérer les comptes
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Des adresses qui impriment sans payer, sur un lot de pages acheté d&apos;avance. Les
+          autres clients paient avant d&apos;imprimer.
+        </p>
+      </section>
+
+      <section className="surface-card p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-lg font-bold">Activité par expéditeur</h2>
           <Link
             href="/admin/impressions/expediteurs"
