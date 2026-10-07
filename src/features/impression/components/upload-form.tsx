@@ -31,7 +31,14 @@ import { trierFichiers } from '../upload-rules'
  */
 
 // Les fichiers Office sont convertis en PDF par l'API dès l'envoi (LibreOffice).
-const ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp'
+//
+// `.webp` est volontairement absent : la centrale ne sait pas le convertir, et
+// mieux vaut ne pas le proposer que le refuser après l'envoi. `.jfif` et `.jpe`
+// y figurent en revanche — ce sont de vrais JPEG, qu'Edge et certains outils
+// nomment ainsi. Au-delà de cette liste, c'est de toute façon la centrale qui
+// tranche, en lisant le contenu et non le nom.
+const ACCEPT =
+  '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.jpe,.jfif,.png,.gif,.bmp,.tiff,.tif'
 
 
 /**
