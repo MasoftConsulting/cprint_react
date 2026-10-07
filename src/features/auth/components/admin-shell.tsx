@@ -49,6 +49,7 @@ function resolvePageTitle(pathname: string): string {
   if (pathname === '/admin/faq/nouveau') return 'Ajouter une question'
   if (pathname.startsWith('/admin/faq/')) return 'Modifier la question'
   if (pathname.startsWith('/admin/faq')) return 'FAQ'
+  if (/^\/admin\/impressions\/credits\/.+/.test(pathname)) return 'Historique du compte'
   if (pathname.startsWith('/admin/impressions/credits')) return 'Comptes à crédit'
   if (pathname.startsWith('/admin/impressions/expediteurs')) return 'Activité par expéditeur'
   if (pathname.startsWith('/admin/impressions/points')) return "Points d'impression"

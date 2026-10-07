@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import Link from 'next/link'
 import { Pause, Play, Plus, Wallet } from 'lucide-react'
 
 import { FieldError } from '@/components/ui/field-error'
@@ -142,8 +143,13 @@ export function CreditRow({ account }: { account: CreditAccount }) {
 
       <p className="mt-3 text-sm text-muted-foreground">
         {account.pages_consommees} page{account.pages_consommees > 1 ? 's' : ''} consommée
-        {account.pages_consommees > 1 ? 's' : ''} · {account.mouvements} mouvement
-        {account.mouvements > 1 ? 's' : ''}
+        {account.pages_consommees > 1 ? 's' : ''} ·{' '}
+        <Link
+          href={`/admin/impressions/credits/${encodeURIComponent(account.email)}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {account.mouvements} mouvement{account.mouvements > 1 ? 's' : ''}
+        </Link>
       </p>
 
       {aSec && account.active && (
