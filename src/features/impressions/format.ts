@@ -37,3 +37,16 @@ export function formatExpiry(value: string): string {
   const heures = Math.round(minutes / 60)
   return heures < 48 ? `dans ${heures} h` : `dans ${Math.round(heures / 24)} j`
 }
+
+/**
+ * Montant dans la devise de la centrale, sans jamais supposer laquelle : elle
+ * vient de Supabase et peut changer sans redéploiement.
+ *
+ * Ici et non dans `wallets-manager.tsx` : ce dernier est un module
+ * `'use client'`, dont les exports deviennent des références client. Une page
+ * serveur qui en importerait cette fonction appellerait la référence et non la
+ * fonction — l'écran tombait sur « une erreur est survenue ».
+ */
+export function formatMontant(montant: number, devise: string): string {
+  return `${montant.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${devise}`
+}

@@ -6,7 +6,8 @@ import { ArrowLeft, Info } from 'lucide-react'
 import { CardsSkeleton } from '@/components/ui/skeletons'
 import { requirePrintAdmin } from '@/features/impressions/access'
 import { PrintAdminError } from '@/features/impressions/client'
-import { formatMontant, WalletRow } from '@/features/impressions/components/wallets-manager'
+import { WalletRow } from '@/features/impressions/components/wallets-manager'
+import { formatMontant } from '@/features/impressions/format'
 import { getWallets } from '@/features/impressions/queries'
 
 export const metadata: Metadata = {

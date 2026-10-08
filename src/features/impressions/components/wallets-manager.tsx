@@ -9,7 +9,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import { initialFormState, type FormState } from '@/lib/form-state'
 import { cn } from '@/lib/cn'
 import { adjustWallet } from '@/features/impressions/actions'
-import { formatCentralDate } from '@/features/impressions/format'
+import { formatCentralDate, formatMontant } from '@/features/impressions/format'
 import type { Wallet } from '@/features/impressions/types'
 
 /**
@@ -36,11 +36,6 @@ function Message({ state }: { state: FormState }) {
       {state.message}
     </p>
   )
-}
-
-/** Montant dans la devise de la centrale, sans jamais supposer laquelle. */
-export function formatMontant(montant: number, devise: string) {
-  return `${montant.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${devise}`
 }
 
 export function WalletRow({ wallet }: { wallet: Wallet }) {
