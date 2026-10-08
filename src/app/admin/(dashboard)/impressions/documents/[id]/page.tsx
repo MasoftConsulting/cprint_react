@@ -53,12 +53,24 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
             <h1 className="font-display text-xl font-extrabold break-words">
               {job.original_filename}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">{job.sender_email}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Envoyé par {job.sender_email} — le code lui est adressé
+            </p>
           </div>
           <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
             {JOB_STATUS_LABELS[job.status] ?? job.status}
           </span>
         </div>
+
+        <Link
+          href={`/admin/impressions/code/${job.verification_code}`}
+          className="mt-5 inline-flex items-center gap-3 rounded-xl bg-primary/10 px-5 py-3 transition-colors hover:bg-primary/15"
+        >
+          <span className="text-xs font-medium text-muted-foreground">Code de retrait</span>
+          <span className="font-mono text-2xl font-extrabold tracking-[0.2em] text-primary">
+            {job.verification_code}
+          </span>
+        </Link>
 
         <dl className="mt-5 grid gap-4 sm:grid-cols-3">
           <Info label="Pages" valeur={`${job.page_count} × ${job.copies} exemplaire(s)`} />

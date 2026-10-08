@@ -10,7 +10,10 @@ export type JobStatus = 'RECEIVED' | 'READY' | 'PRINTING' | 'PRINTED' | 'ERROR' 
 
 export type PrintJob = {
   id: number
+  /** Qui a envoyé les documents, et à qui le code de retrait est adressé. */
   sender_email: string
+  /** Code de retrait à 6 chiffres, celui que le client tape sur la borne. */
+  verification_code: string
   original_filename: string
   status: JobStatus
   color_mode: string

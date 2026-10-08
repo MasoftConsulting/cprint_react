@@ -179,11 +179,20 @@ async function Overview() {
             {jobs.map((job) => (
               <li key={job.id} className="flex flex-wrap items-center gap-3 py-3">
                 <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/admin/impressions/documents/${job.id}`}
+                    className="block truncate font-medium hover:underline"
+                  >
+                    {job.original_filename}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">{job.sender_email}</span>
+                </div>
                 <Link
-                  href={`/admin/impressions/documents/${job.id}`}
-                  className="min-w-0 flex-1 truncate font-medium hover:underline"
+                  href={`/admin/impressions/code/${job.verification_code}`}
+                  className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-semibold text-primary hover:bg-primary/15"
                 >
-                  {job.original_filename}
+                  {job.verification_code}
                 </Link>
                 <span className="text-xs text-muted-foreground">
                   {job.page_count} p. · {formatCentralDate(job.created_at)}
