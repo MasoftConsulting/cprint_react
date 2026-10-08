@@ -60,6 +60,19 @@ exposée par un tunnel Cloudflare.
   final). Avant, l'écran n'a que le jeton de session : l'aperçu passe par
   `sessionPreviewUrl()`. Ne jamais afficher de code avant l'étape `ready`.
 
+- **Deux prépaiements, à ne pas confondre.** Les *comptes à crédit* sont en
+  **pages**, rechargés depuis `/admin/impressions/credits`. Les *portefeuilles
+  PrintPoint* sont en **argent**, rechargés par le client lui-même en ligne et
+  seulement consultés depuis `/admin/impressions/portefeuilles`. Quand une
+  adresse a les deux, le crédit en pages passe en premier — l'ordre des
+  boutons de `/imprimer` suit celui de la centrale, l'inverse annoncerait un
+  débit qui n'aura pas lieu. Si aucun ne couvre, le client paie la totalité et
+  ni l'un ni l'autre n'est entamé.
+- La recharge d'un portefeuille est la **seule** transaction Mobile Money de ce
+  parcours : les impressions suivantes sont des débits du solde. Le solde n'est
+  crédité qu'au webhook signé, jamais au retour de navigateur
+  (`/imprimer/portefeuille` est purement informative).
+
 Documentation complète du flux, des garde-fous de paiement et du déploiement :
 `campus-print/README.md`.
 

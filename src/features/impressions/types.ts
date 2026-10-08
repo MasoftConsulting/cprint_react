@@ -183,3 +183,47 @@ export type CreditDetail = {
   created_at: string
   mouvements: CreditMovement[]
 }
+
+/**
+ * Portefeuille PrintPoint : un solde en **argent**, rechargé par le client
+ * lui-même en ligne. À ne pas confondre avec [CreditAccount], qui est en
+ * pages et rechargé depuis cette administration.
+ */
+export type Wallet = {
+  email: string
+  balance: number
+  currency: string
+  mouvements: number
+  /** Somme des seules recharges — ni les remboursements ni les ajustements. */
+  total_recharge: number
+  /** Somme des impressions réglées par ce solde. */
+  total_depense: number
+  created_at: string
+  updated_at: string
+}
+
+export type WalletList = {
+  portefeuilles: Wallet[]
+  /** Somme des soldes : de l'argent encaissé pour des pages pas encore sorties. */
+  total_du: number
+  montants_de_recharge: number[]
+}
+
+export type WalletMovement = {
+  /** Positif = recharge ou remboursement, négatif = impression. */
+  amount: number
+  reason: 'TOPUP' | 'PRINT' | 'REFUND' | 'ADJUST'
+  /** Référence du paiement : la recharge, ou l'impression débitée. */
+  reference: string | null
+  note: string | null
+  created_at: string
+}
+
+export type WalletDetail = {
+  email: string
+  balance: number
+  currency: string
+  created_at: string
+  updated_at: string
+  mouvements: WalletMovement[]
+}

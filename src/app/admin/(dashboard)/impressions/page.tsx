@@ -109,6 +109,23 @@ async function Overview() {
 
       <section className="surface-card p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold">Portefeuilles PrintPoint</h2>
+          <Link
+            href="/admin/impressions/portefeuilles"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Voir les soldes
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Des clients qui rechargent un solde en ligne, puis impriment en le consommant à
+          l&apos;unité. Le total des soldes est de l&apos;argent encaissé pour des pages pas
+          encore sorties.
+        </p>
+      </section>
+
+      <section className="surface-card p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-lg font-bold">Activité par expéditeur</h2>
           <Link
             href="/admin/impressions/expediteurs"

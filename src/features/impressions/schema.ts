@@ -75,3 +75,26 @@ export const creditTopUpSchema = z.object({
     .max(1_000_000),
   note: z.string().trim().max(120, 'Cent vingt caractères au maximum.').optional(),
 })
+
+/**
+ * Ajustement d'un portefeuille PrintPoint : geste commercial, ou recharge
+ * encaissée en espèces au comptoir.
+ *
+ * Ce n'est pas une recharge en ligne — aucun paiement n'a eu lieu côté
+ * FedaPay. La note est donc **obligatoire** ici, alors qu'elle est optionnelle
+ * pour un crédit en pages : sans elle, de l'argent apparaîtrait de nulle part
+ * dans l'historique le jour d'un contrôle. La centrale applique la même règle.
+ */
+export const walletAdjustSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  montant: z.coerce
+    .number()
+    .refine((n) => n !== 0, 'Indiquez un montant différent de zéro.')
+    .min(-1_000_000, 'Un million au maximum.')
+    .max(1_000_000, 'Un million au maximum.'),
+  note: z
+    .string()
+    .trim()
+    .min(3, 'Expliquez cet ajustement : il n’a aucune trace de paiement.')
+    .max(120, 'Cent vingt caractères au maximum.'),
+})

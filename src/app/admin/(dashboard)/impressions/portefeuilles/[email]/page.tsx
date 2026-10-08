@@ -7,33 +7,37 @@ import { CardsSkeleton } from '@/components/ui/skeletons'
 import { cn } from '@/lib/cn'
 import { requirePrintAdmin } from '@/features/impressions/access'
 import { PrintAdminError } from '@/features/impressions/client'
+import { formatMontant } from '@/features/impressions/components/wallets-manager'
 import { formatCentralDate } from '@/features/impressions/format'
 import { soldesSuccessifs } from '@/features/impressions/credit-historique'
-import { getCreditAccount } from '@/features/impressions/queries'
-import type { CreditMovement } from '@/features/impressions/types'
+import { getWallet } from '@/features/impressions/queries'
+import type { WalletMovement } from '@/features/impressions/types'
 
 export const metadata: Metadata = {
-  title: 'Historique du compte',
+  title: 'Historique du portefeuille',
 }
 
-/** Libellé et couleur de chaque type de mouvement. */
-const MOUVEMENTS: Record<CreditMovement['reason'], { label: string; classe: string }> = {
+/**
+ * Libellé et couleur de chaque type de mouvement.
+ *
+ * « Correction » plutôt que « Ajustement » : c'est le mot qu'emploie déjà
+ * l'historique des comptes à crédit, et les deux écrans se lisent côte à côte.
+ */
+const MOUVEMENTS: Record<WalletMovement['reason'], { label: string; classe: string }> = {
   TOPUP: { label: 'Recharge', classe: 'bg-emerald-500/10 text-emerald-700' },
   PRINT: { label: 'Impression', classe: 'bg-primary/10 text-primary' },
   REFUND: { label: 'Remboursement', classe: 'bg-amber-500/10 text-amber-700' },
   ADJUST: { label: 'Correction', classe: 'bg-muted text-muted-foreground' },
 }
 
-
 async function Historique({ email }: { email: string }) {
   await requirePrintAdmin()
 
-  let compte
+  let portefeuille
   try {
-    compte = await getCreditAccount(email)
+    portefeuille = await getWallet(email)
   } catch (error) {
-    const message =
-      error instanceof PrintAdminError ? error.message : 'Lecture impossible.'
+    const message = error instanceof PrintAdminError ? error.message : 'Lecture impossible.'
     return (
       <div className="surface-card border-destructive/30 bg-destructive/5 p-6">
         <p className="font-medium text-destructive">{message}</p>
@@ -41,49 +45,57 @@ async function Historique({ email }: { email: string }) {
     )
   }
 
+  const { currency } = portefeuille
   const soldes = soldesSuccessifs(
-    compte.mouvements.map((m) => m.pages),
-    compte.pages_balance,
+    portefeuille.mouvements.map((m) => m.amount),
+    portefeuille.balance,
   )
-  const recharge = compte.mouvements
-    .filter((m) => m.pages > 0)
-    .reduce((n, m) => n + m.pages, 0)
-  const consomme = compte.mouvements
-    .filter((m) => m.pages < 0)
-    .reduce((n, m) => n - m.pages, 0)
+
+  // Seules les vraies recharges comptent comme encaissées : un remboursement
+  // et une correction sont aussi des mouvements positifs, mais rien n'est
+  // rentré en caisse. Les additionner gonflerait le chiffre affiché.
+  const recharge = portefeuille.mouvements
+    .filter((m) => m.reason === 'TOPUP')
+    .reduce((n, m) => n + m.amount, 0)
+  const imprime = portefeuille.mouvements
+    .filter((m) => m.reason === 'PRINT')
+    .reduce((n, m) => n - m.amount, 0)
+  const rembourse = portefeuille.mouvements
+    .filter((m) => m.reason === 'REFUND')
+    .reduce((n, m) => n + m.amount, 0)
 
   return (
     <div className="space-y-6">
       <div className="surface-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="font-display text-lg font-bold break-all">{compte.email}</h2>
+            <h2 className="font-display text-lg font-bold break-all">{portefeuille.email}</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {compte.label ?? 'Sans intitulé'} · ouvert le{' '}
-              {formatCentralDate(compte.created_at)}
+              ouvert le {formatCentralDate(portefeuille.created_at)} · dernier mouvement le{' '}
+              {formatCentralDate(portefeuille.updated_at)}
             </p>
           </div>
           <span
             className={cn(
               'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-lg font-extrabold',
-              compte.pages_balance <= 0
-                ? 'bg-destructive/10 text-destructive'
+              portefeuille.balance <= 0
+                ? 'bg-muted text-muted-foreground'
                 : 'bg-emerald-500/10 text-emerald-700',
             )}
           >
             <Wallet className="h-5 w-5" aria-hidden />
-            {compte.pages_balance} page{Math.abs(compte.pages_balance) > 1 ? 's' : ''}
+            {formatMontant(portefeuille.balance, currency)}
           </span>
         </div>
 
         <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border text-center sm:grid-cols-4">
           {[
-            ['Rechargé', recharge],
-            ['Consommé', consomme],
-            ['Mouvements', compte.mouvements.length],
-            ['État', compte.active ? 'Actif' : 'Suspendu'],
+            ['Rechargé', formatMontant(recharge, currency)],
+            ['Imprimé', formatMontant(imprime, currency)],
+            ['Remboursé', formatMontant(rembourse, currency)],
+            ['Mouvements', String(portefeuille.mouvements.length)],
           ].map(([label, valeur]) => (
-            <div key={String(label)} className="bg-card px-2 py-3">
+            <div key={label} className="bg-card px-2 py-3">
               <dt className="text-[11px] text-muted-foreground">{label}</dt>
               <dd className="font-display text-lg font-bold">{valeur}</dd>
             </div>
@@ -97,22 +109,22 @@ async function Historique({ email }: { email: string }) {
             <tr>
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Mouvement</th>
-              <th className="px-4 py-3 text-right font-medium">Pages</th>
+              <th className="px-4 py-3 text-right font-medium">Montant</th>
               <th className="px-4 py-3 text-right font-medium">Solde après</th>
-              <th className="hidden px-4 py-3 font-medium sm:table-cell">Note</th>
+              <th className="hidden px-4 py-3 font-medium sm:table-cell">Motif</th>
               <th className="hidden px-4 py-3 font-medium lg:table-cell">Référence</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {compte.mouvements.length === 0 && (
+            {portefeuille.mouvements.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                  Aucun mouvement sur ce compte.
+                  Aucun mouvement sur ce portefeuille.
                 </td>
               </tr>
             )}
 
-            {compte.mouvements.map((mouvement, index) => {
+            {portefeuille.mouvements.map((mouvement, index) => {
               const type = MOUVEMENTS[mouvement.reason] ?? {
                 label: mouvement.reason,
                 classe: 'bg-muted text-muted-foreground',
@@ -135,14 +147,14 @@ async function Historique({ email }: { email: string }) {
                   <td
                     className={cn(
                       'px-4 py-3 text-right font-medium',
-                      mouvement.pages > 0 ? 'text-emerald-700' : 'text-foreground',
+                      mouvement.amount > 0 ? 'text-emerald-700' : 'text-foreground',
                     )}
                   >
-                    {mouvement.pages > 0 ? '+' : ''}
-                    {mouvement.pages}
+                    {mouvement.amount > 0 ? '+' : ''}
+                    {formatMontant(mouvement.amount, currency)}
                   </td>
                   <td className="px-4 py-3 text-right text-muted-foreground">
-                    {soldes[index]}
+                    {formatMontant(soldes[index], currency)}
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                     {mouvement.note ?? '—'}
@@ -158,15 +170,15 @@ async function Historique({ email }: { email: string }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Le solde est en pages noir &amp; blanc : une page couleur en consomme davantage, dans le
-        rapport de vos tarifs. La colonne
-        « Solde après » est reconstituée depuis le solde actuel, en remontant les mouvements.
+        Une « Correction » n&apos;a aucun paiement derrière elle : son motif est la seule trace
+        de ce geste, d&apos;où son caractère obligatoire. La colonne « Solde après » est
+        reconstituée depuis le solde actuel, en remontant les mouvements.
       </p>
     </div>
   )
 }
 
-export default async function HistoriqueCreditPage({
+export default async function HistoriquePortefeuillePage({
   params,
 }: {
   params: Promise<{ email: string }>
@@ -177,16 +189,16 @@ export default async function HistoriqueCreditPage({
   return (
     <div className="space-y-6">
       <Link
-        href="/admin/impressions/credits"
+        href="/admin/impressions/portefeuilles"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Retour aux comptes à crédit
+        Retour aux portefeuilles
       </Link>
 
       <header>
         <h1 className="font-display text-2xl font-extrabold sm:text-3xl">
-          Historique du compte
+          Historique du portefeuille
         </h1>
         <p className="mt-1 text-sm break-all text-muted-foreground">{adresse}</p>
       </header>

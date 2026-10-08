@@ -13,6 +13,7 @@ import {
   creditAccountSchema,
   creditTopUpSchema,
   jobIdSchema,
+  walletAdjustSchema,
 } from './schema'
 import type { AgentCredentials } from './types'
 
@@ -277,5 +278,51 @@ export async function setCreditAccountActive(
     }
   } catch (cause) {
     return echec(cause, "Le compte n'a pas pu être modifié.")
+  }
+}
+
+// --- Portefeuilles PrintPoint ------------------------------------------------
+// En argent, et rechargés par le client lui-même en ligne. Cette
+// administration ne recharge pas à sa place : elle constate, et corrige.
+
+/**
+ * Corrige un solde à la main : geste commercial, ou recharge encaissée en
+ * espèces au comptoir.
+ *
+ * Un montant négatif retire de l'argent, et la centrale l'accepte même si le
+ * solde passe sous zéro — corriger un crédit accordé par erreur ne doit pas
+ * être bloqué par ce crédit lui-même.
+ */
+export async function adjustWallet(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requirePrintAdmin()
+
+  const parsed = walletAdjustSchema.safeParse({
+    email: formData.get('email'),
+    montant: formData.get('montant'),
+    note: formData.get('note'),
+  })
+  if (!parsed.success) {
+    return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
+  }
+
+  const query = new URLSearchParams({
+    montant: String(parsed.data.montant),
+    note: parsed.data.note,
+  })
+
+  try {
+    const { balance } = await callCentral<{ balance: number }>(
+      `/admin/portefeuilles/${encodeURIComponent(parsed.data.email)}/ajustement?${query}`,
+      { method: 'POST' },
+    )
+    revalidatePath('/admin/impressions/portefeuilles')
+    revalidatePath(`/admin/impressions/portefeuilles/${encodeURIComponent(parsed.data.email)}`)
+    const verbe = parsed.data.montant > 0 ? 'Crédité de' : 'Retiré'
+    return {
+      status: 'success',
+      message: `${verbe} ${Math.abs(parsed.data.montant).toLocaleString('fr-FR')}. Nouveau solde : ${balance.toLocaleString('fr-FR')}.`,
+    }
+  } catch (cause) {
+    return echec(cause, "L'ajustement n'a pas pu être enregistré.")
   }
 }

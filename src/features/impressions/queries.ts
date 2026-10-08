@@ -5,6 +5,8 @@ import type {
   CodeDetail,
   CreditAccount,
   CreditDetail,
+  WalletDetail,
+  WalletList,
   Expediteur,
   JobEvent,
   PrintAgent,
@@ -75,4 +77,19 @@ export function getCreditAccounts() {
 /** Solde et historique des mouvements d'un compte. */
 export function getCreditAccount(email: string) {
   return callCentral<CreditDetail>(`/admin/credits/${encodeURIComponent(email)}`)
+}
+
+/**
+ * Portefeuilles PrintPoint, le plus gros solde en tête, avec la dette totale.
+ *
+ * Rappel en lisant `total_du` : c'est de l'argent déjà encaissé pour des
+ * pages qui ne sont pas encore sorties.
+ */
+export function getWallets() {
+  return callCentral<WalletList>('/admin/portefeuilles')
+}
+
+/** Solde et historique complet des mouvements d'un portefeuille. */
+export function getWallet(email: string) {
+  return callCentral<WalletDetail>(`/admin/portefeuilles/${encodeURIComponent(email)}`)
 }

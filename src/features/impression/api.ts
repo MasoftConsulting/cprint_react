@@ -42,6 +42,12 @@ export type PrintSession = {
    * `null` = client payant ordinaire, c'est le cas général.
    */
   credit_pages?: number | null
+  /**
+   * Solde du portefeuille PrintPoint, en argent. `null` = cette adresse n'a
+   * jamais rechargé. À ne pas confondre avec `credit_pages`, qui est en pages
+   * et rechargé par l'administration.
+   */
+  portefeuille?: number | null
 }
 
 export type SessionStatus = 'PENDING' | 'FILES_RECEIVED' | 'COMPLETED' | 'EXPIRED'
@@ -66,6 +72,7 @@ export type SessionState = {
   code: string | null
   expires_at: string
   credit_pages?: number | null
+  portefeuille?: number | null
   warnings: string[]
 }
 
@@ -79,6 +86,8 @@ export type UploadResult = {
   code_sent_to: string
   code_email_failed: boolean
   warnings: string[]
+  credit_pages?: number | null
+  portefeuille?: number | null
 }
 
 /** Paiement déjà effectué (ou en cours) pour les documents d'un code. */
@@ -126,6 +135,23 @@ export type CreditQuote = {
   couvert: boolean
 }
 
+/**
+ * Ce que l'impression coûte au portefeuille PrintPoint, et ce qu'il restera.
+ *
+ * Contrairement au crédit, tout est en argent : `montant` est exactement le
+ * prix de l'impression. `manquant` vaut 0 dès que le solde couvre — c'est ce
+ * chiffre que l'écran propose de recharger.
+ */
+export type WalletQuote = {
+  solde: number
+  montant: number
+  restant: number
+  /** Faux = solde insuffisant : le client paiera normalement, la totalité. */
+  couvert: boolean
+  manquant: number
+  devise: string
+}
+
 export type Quote = {
   pages: number
   amount: number
@@ -134,11 +160,20 @@ export type Quote = {
   payment_required: boolean
   /** Renseigné seulement si l'adresse correspond à un compte à crédit actif. */
   credit?: CreditQuote | null
+  /** Renseigné seulement si l'adresse a déjà rechargé un portefeuille. */
+  portefeuille?: WalletQuote | null
+  /**
+   * Montants de recharge proposés, réglés par la centrale
+   * (`WALLET_TOPUP_AMOUNTS`). Jamais codés en dur ici : une liste figée
+   * finirait par ne plus correspondre à ce que la centrale accepte, et la
+   * recharge serait refusée après le choix du client.
+   */
+  montants_de_recharge?: number[]
 }
 
 export type Payment = {
   reference: string
-  provider: 'FEDAPAY' | 'SIMULATED' | 'CREDIT'
+  provider: 'FEDAPAY' | 'SIMULATED' | 'CREDIT' | 'WALLET'
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELED' | 'EXPIRED'
   amount: number
   currency: string
@@ -279,6 +314,18 @@ export function getQuote(
 
 export function createPayment(options: PrintOptions, email: string | null) {
   return postJson<Payment>('/payments', { ...options, email })
+}
+
+/**
+ * Recharge le portefeuille PrintPoint. `amount` doit figurer dans les
+ * `montants_de_recharge` du devis, sinon la centrale refuse.
+ *
+ * C'est la **seule** transaction Mobile Money du parcours portefeuille : les
+ * impressions qui suivent sont débitées du solde, sans nouvel appel ici. Une
+ * page à 10 F ne justifierait ni les frais ni la latence d'un paiement mobile.
+ */
+export function topUpWallet(email: string, amount: number) {
+  return postJson<Payment>('/payments/topup', { email, amount })
 }
 
 export function getPayment(reference: string) {

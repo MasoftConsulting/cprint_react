@@ -34,6 +34,7 @@ import {
   resumedSession,
   sameTabUploadHref,
   sessionPreviewUrl,
+  topUpWallet,
   verifyCode,
   type ColorMode,
   type Duplex,
@@ -42,6 +43,7 @@ import {
   type PrintDocument,
   type PrintSession,
   type Quote,
+  type WalletQuote,
 } from '../api'
 
 /**
@@ -65,7 +67,7 @@ import {
  * côté serveur au moment de payer et de nouveau au moment d'imprimer.
  */
 
-type Step = 'resuming' | 'start' | 'waiting' | 'documents' | 'paying' | 'ready'
+type Step = 'resuming' | 'start' | 'waiting' | 'documents' | 'paying' | 'topup' | 'ready'
 
 const SESSION_POLL_MS = 3000
 const PAYMENT_POLL_MS = 3000
@@ -77,6 +79,13 @@ type Ready = {
   pages: number
   /** Paiement de démonstration (aucune transaction réelle). */
   simulated: boolean
+  /**
+   * Comment l'impression a été réglée. Un débit de crédit ou de portefeuille
+   * n'est pas un paiement : annoncer « paiement confirmé » à quelqu'un qui n'a
+   * rien payé à l'instant lui ferait chercher une transaction inexistante sur
+   * son téléphone.
+   */
+  provider?: Payment['provider']
 }
 
 /**
@@ -129,6 +138,13 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
 
   const [quoteState, setQuoteState] = useState<{ key: string; quote: Quote } | null>(null)
   const [paymentState, setPaymentState] = useState<{ key: string; payment: Payment } | null>(null)
+  /**
+   * Recharge du portefeuille en cours. Volontairement rangée à part du
+   * paiement d'impression : elle ne vaut pour aucune sélection, et un
+   * changement d'options ne doit pas l'annuler — l'argent rechargé reste
+   * acquis quoi qu'il arrive ensuite.
+   */
+  const [topUp, setTopUp] = useState<Payment | null>(null)
   const quote = quoteState?.key === optionsKey ? quoteState.quote : null
   const payment = paymentState?.key === optionsKey ? paymentState.payment : null
 
@@ -146,6 +162,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     setCopies(1)
     setQuoteState(null)
     setPaymentState(null)
+    setTopUp(null)
     setReady(null)
     setPreview(null)
   }, [])
@@ -163,8 +180,13 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
    * session à ce moment-là, jamais avant.
    */
   const showReady = useCallback(
-    async (paid: Ready['paid'], pages: number, simulated = false) => {
-      setReady({ paid, pages, simulated })
+    async (
+      paid: Ready['paid'],
+      pages: number,
+      simulated = false,
+      provider?: Payment['provider'],
+    ) => {
+      setReady({ paid, pages, simulated, provider })
       setStep('ready')
       if (!session) return
       try {
@@ -307,6 +329,78 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     // payant à quelqu'un qui a du crédit.
   }, [step, selected, colorMode, copies, optionsKey, session?.email])
 
+  /**
+   * Relit le devis sans attendre le prochain changement d'options : appelé
+   * après une recharge, pour que le nouveau solde apparaisse immédiatement.
+   */
+  const sessionEmail = session?.email ?? null
+  const refreshQuote = useCallback(async () => {
+    if (selected.length === 0) return
+    try {
+      const next = await getQuote(selected, colorMode, copies, sessionEmail)
+      setQuoteState({ key: optionsKey, quote: next })
+    } catch {
+      // Le devis affiché reste celui d'avant : le serveur recalculera de
+      // toute façon au moment de payer.
+    }
+  }, [selected, colorMode, copies, sessionEmail, optionsKey])
+
+  // --- Recharge du portefeuille ----------------------------------------------
+  async function handleTopUp(amount: number) {
+    if (!session?.email) return
+    setBusy(true)
+    setError(null)
+    try {
+      const created = await topUpWallet(session.email, amount)
+      setTopUp(created)
+      if (created.status === 'APPROVED') {
+        // Mode simulé : le solde est déjà crédité.
+        await refreshQuote()
+        setTopUp(null)
+      } else {
+        setStep('topup')
+      }
+    } catch (cause) {
+      setError(messageOf(cause, "La recharge n'a pas pu être lancée."))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // --- Suivi de la recharge en cours -----------------------------------------
+  // Le solde n'est crédité qu'à la confirmation du webhook : cet écran attend
+  // cette confirmation, il ne la suppose pas parce que le client est revenu.
+  useEffect(() => {
+    if (step !== 'topup' || !topUp || topUp.status !== 'PENDING') return
+
+    let cancelled = false
+    const timer = setInterval(async () => {
+      try {
+        const next = await getPayment(topUp.reference)
+        if (cancelled) return
+
+        if (next.status === 'APPROVED') {
+          setTopUp(null)
+          await refreshQuote()
+          setStep('documents')
+        } else if (next.status !== 'PENDING') {
+          setTopUp(null)
+          setError("La recharge n'a pas abouti. Votre solde est inchangé.")
+          setStep('documents')
+        } else {
+          setTopUp(next)
+        }
+      } catch {
+        // Réessai au tour suivant.
+      }
+    }, PAYMENT_POLL_MS)
+
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [step, topUp, refreshQuote])
+
   // --- Paiement --------------------------------------------------------------
   async function handlePay() {
     setBusy(true)
@@ -320,7 +414,12 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
 
       if (created.status === 'APPROVED') {
         // Mode simulé (FedaPay pas encore branché) : validé immédiatement.
-        showReady(paidOf(created), created.pages, created.provider === 'SIMULATED')
+        showReady(
+          paidOf(created),
+          created.pages,
+          created.provider === 'SIMULATED',
+          created.provider,
+        )
       } else {
         setStep('paying')
       }
@@ -343,7 +442,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
         setPaymentState({ key: optionsKey, payment: next })
 
         if (next.status === 'APPROVED') {
-          showReady(paidOf(next), next.pages, next.provider === 'SIMULATED')
+          showReady(paidOf(next), next.pages, next.provider === 'SIMULATED', next.provider)
         } else if (next.status !== 'PENDING') {
           setError("Le paiement n'a pas abouti. Vous pouvez réessayer.")
           setStep('documents')
@@ -439,6 +538,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
           quote={quote}
           busy={busy}
           onPay={handlePay}
+          onTopUp={session?.email ? handleTopUp : null}
           onReady={() => showReady(null, quote?.pages ?? 0)}
           onBack={reset}
         />
@@ -446,6 +546,16 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
 
       {step === 'paying' && payment && (
         <PayingStep payment={payment} onCancel={() => setStep('documents')} />
+      )}
+
+      {step === 'topup' && topUp && (
+        <TopUpStep
+          payment={topUp}
+          onCancel={() => {
+            setTopUp(null)
+            setStep('documents')
+          }}
+        />
       )}
 
       {step === 'ready' && ready && <ReadyStep code={code} ready={ready} onRestart={reset} />}
@@ -604,6 +714,7 @@ function DocumentsStep({
   quote,
   busy,
   onPay,
+  onTopUp,
   onReady,
   onBack,
 }: {
@@ -622,6 +733,8 @@ function DocumentsStep({
   quote: Quote | null
   busy: boolean
   onPay: () => void
+  /** `null` dans le parcours par code : recharger exige l'adresse de la session. */
+  onTopUp: ((amount: number) => void) | null
   onReady: () => void
   onBack: () => void
 }) {
@@ -785,22 +898,86 @@ function DocumentsStep({
               )}
             </div>
           )}
+
+          {/* Portefeuille PrintPoint : en argent, et rechargé par le client
+              lui-même. Affiché après le crédit, dans l'ordre où la centrale
+              les sollicite — le crédit en pages passe en premier. */}
+          {quote.portefeuille && (
+            <div className="mt-3 border-t border-border/60 pt-3 text-sm">
+              {quote.portefeuille.couvert ? (
+                <>
+                  <p className="font-medium text-emerald-700">
+                    Réglé par votre portefeuille — rien à payer maintenant.
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    {formatAmount(quote.portefeuille.montant, quote.portefeuille.devise)} déduits
+                    de vos {formatAmount(quote.portefeuille.solde, quote.portefeuille.devise)} — il
+                    vous restera{' '}
+                    <strong>
+                      {formatAmount(quote.portefeuille.restant, quote.portefeuille.devise)}
+                    </strong>
+                    .
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-amber-700">Solde insuffisant.</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Il vous reste{' '}
+                    {formatAmount(quote.portefeuille.solde, quote.portefeuille.devise)}, il manque{' '}
+                    <strong>
+                      {formatAmount(quote.portefeuille.manquant, quote.portefeuille.devise)}
+                    </strong>
+                    . Rechargez, ou payez cette impression normalement — votre solde n&apos;est
+                    pas entamé.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Recharger est proposé ici, au moment où le besoin apparaît, et non
+          sur un écran séparé : un client à qui il manque 200 F ne va pas
+          chercher une page « mon portefeuille ». */}
+      {onTopUp &&
+        quote &&
+        // Rien à recharger si l'impression est gratuite (aucun tarif
+        // configuré), ni si un prépaiement la couvre déjà.
+        quote.amount > 0 &&
+        !quote.portefeuille?.couvert &&
+        !quote.credit?.couvert && (
+        <TopUpOffer
+          amounts={quote.montants_de_recharge ?? []}
+          wallet={quote.portefeuille ?? null}
+          currency={quote.currency}
+          busy={busy}
+          onTopUp={onTopUp}
+        />
+      )}
+
       <div className="mt-6 space-y-3">
-        {quote?.payment_required ? (
-          <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
-            <CreditCard className="h-5 w-5" aria-hidden />
-            Payer {formatAmount(quote.amount, quote.currency)}
-          </PrimaryButton>
-        ) : quote?.credit?.couvert ? (
+        {/* L'ordre suit celui de la centrale : le crédit en pages est sollicité
+            avant le portefeuille. L'inverse annoncerait un débit du solde là
+            où le serveur débiterait le crédit. */}
+        {quote?.credit?.couvert ? (
           // Passe par onPay malgré l'absence de paiement : c'est cet appel qui
           // débite le crédit et libère le code de retrait. onReady ne ferait ni
           // l'un ni l'autre.
           <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
             <Wallet className="h-5 w-5" aria-hidden />
             Imprimer sur mon crédit
+          </PrimaryButton>
+        ) : quote?.portefeuille?.couvert ? (
+          <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
+            <Wallet className="h-5 w-5" aria-hidden />
+            Imprimer sur mon solde
+          </PrimaryButton>
+        ) : quote?.payment_required ? (
+          <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
+            <CreditCard className="h-5 w-5" aria-hidden />
+            Payer {formatAmount(quote.amount, quote.currency)}
           </PrimaryButton>
         ) : (
           <PrimaryButton onClick={onReady} disabled={busy || nothingSelected} busy={busy}>
@@ -817,6 +994,122 @@ function DocumentsStep({
           Annuler
         </button>
       </div>
+    </Card>
+  )
+}
+
+/**
+ * Proposition de recharge du portefeuille PrintPoint.
+ *
+ * Les montants viennent de la centrale (`WALLET_TOPUP_AMOUNTS`) et ne sont
+ * jamais codés ici : une liste figée côté navigateur finirait par proposer un
+ * montant que la centrale refuse, après que le client l'a choisi.
+ *
+ * Le montant qui suffit tout juste est mis en avant — c'est presque toujours
+ * celui que le client veut, et le chercher dans la liste est un effort inutile.
+ */
+function TopUpOffer({
+  amounts,
+  wallet,
+  currency,
+  busy,
+  onTopUp,
+}: {
+  amounts: number[]
+  /** `null` = cette adresse n'a jamais rechargé : on explique le principe. */
+  wallet: WalletQuote | null
+  currency: string
+  busy: boolean
+  onTopUp: (amount: number) => void
+}) {
+  if (amounts.length === 0) return null
+
+  const manquant = wallet?.manquant ?? 0
+  const suffisant = manquant > 0 ? amounts.find((amount) => amount >= manquant) : undefined
+
+  return (
+    <div className="mt-4 rounded-xl border border-dashed border-border px-5 py-4">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <Wallet className="h-4 w-4 text-primary" aria-hidden />
+        {wallet ? 'Recharger mon portefeuille' : 'Payer d’avance avec un portefeuille PrintPoint'}
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {wallet
+          ? 'Vos prochaines impressions seront débitées de ce solde, sans repasser par un paiement mobile.'
+          : 'Rechargez une fois, puis imprimez à l’unité sans repasser par un paiement mobile à chaque fois.'}
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {amounts.map((amount) => (
+          <button
+            key={amount}
+            type="button"
+            disabled={busy}
+            onClick={() => onTopUp(amount)}
+            className={cn(
+              'h-11 rounded-xl border px-4 text-sm font-semibold transition-colors disabled:opacity-50',
+              amount === suffisant
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border hover:bg-accent',
+            )}
+          >
+            {formatAmount(amount, currency)}
+            {amount === suffisant && (
+              <span className="ml-1 font-normal text-muted-foreground">· suffit</span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Attente de la confirmation d'une recharge.
+ *
+ * Le solde n'est crédité qu'à la confirmation du webhook signé, jamais parce
+ * que le client est revenu sur cette page : il suffirait sinon de taper
+ * l'adresse de retour pour se créditer gratuitement.
+ */
+function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => void }) {
+  return (
+    <Card>
+      <StepHeader
+        icon={<Wallet className="h-5 w-5" aria-hidden />}
+        title={`Recharger ${formatAmount(payment.amount, payment.currency)}`}
+        subtitle="Réglez avec Flooz, T-Money/Mixx ou votre carte. Le solde sera crédité dès la confirmation, et vos impressions en seront ensuite débitées."
+      />
+
+      <div className="mt-6 space-y-4">
+        {payment.payment_url && (
+          <a
+            href={payment.payment_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98]"
+          >
+            Ouvrir la page de paiement
+          </a>
+        )}
+
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          En attente de la confirmation de la recharge…
+        </p>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Référence : <span className="font-mono">{payment.reference}</span>
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onCancel}
+        className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Revenir aux documents
+      </button>
     </Card>
   )
 }
@@ -864,6 +1157,28 @@ function PayingStep({ payment, onCancel }: { payment: Payment; onCancel: () => v
   )
 }
 
+/**
+ * Titre de l'écran final, selon la façon dont l'impression a été réglée.
+ *
+ * Un crédit et un portefeuille ne sont pas des paiements : ils ont été
+ * encaissés avant, et le client n'a rien à chercher sur son téléphone.
+ */
+function titreDe(ready: Ready): string {
+  if (!ready.paid) return 'Vos documents sont prêts'
+  if (ready.provider === 'CREDIT') return 'Déduit de votre crédit'
+  if (ready.provider === 'WALLET') return 'Déduit de votre solde'
+  return 'Paiement confirmé'
+}
+
+function detailDe(ready: Ready): string {
+  if (!ready.paid) return "Rien ne sera imprimé avant votre passage à la borne."
+  const pages = `${ready.pages} page${ready.pages > 1 ? 's' : ''}`
+  const montant = formatAmount(ready.paid.amount, ready.paid.currency)
+  if (ready.provider === 'CREDIT') return `${pages} déduites de votre crédit.`
+  if (ready.provider === 'WALLET') return `${montant} déduits de votre solde — ${pages}.`
+  return `${montant} réglés — ${pages}.`
+}
+
 function ReadyStep({
   code,
   ready,
@@ -877,14 +1192,8 @@ function ReadyStep({
     <Card>
       <div className="text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden />
-        <h2 className="mt-4 text-2xl font-extrabold">
-          {ready.paid ? 'Paiement confirmé' : 'Vos documents sont prêts'}
-        </h2>
-        <p className="mt-2 text-muted-foreground">
-          {ready.paid
-            ? `${formatAmount(ready.paid.amount, ready.paid.currency)} réglés — ${ready.pages} page${ready.pages > 1 ? 's' : ''}.`
-            : 'Rien ne sera imprimé avant votre passage à la borne.'}
-        </p>
+        <h2 className="mt-4 text-2xl font-extrabold">{titreDe(ready)}</h2>
+        <p className="mt-2 text-muted-foreground">{detailDe(ready)}</p>
         {ready.simulated && (
           <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-semibold text-muted-foreground">
             Paiement de démonstration — aucun montant débité
