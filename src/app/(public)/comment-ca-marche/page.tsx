@@ -17,7 +17,7 @@ const STEPS = [
     Icon: Send,
     title: 'Envoyez votre document',
     text: "Depuis votre téléphone ou votre ordinateur, envoyez un PDF, un fichier Word ou Excel, un PowerPoint ou une simple photo. Aucune application à installer.",
-    items: ['PDF, DOCX, PPTX, JPG, PNG', "Jusqu'à 50 Mo par envoi", 'Pas de compte à créer'],
+    items: ['PDF, DOCX, PPTX, JPG, PNG', "Jusqu'à 25 Mo par fichier", 'Pas de compte à créer'],
   },
   {
     Icon: Settings2,

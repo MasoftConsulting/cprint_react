@@ -111,7 +111,7 @@ export function FaqForm({ action, entry, submitLabel }: Props) {
               name="reponse"
               rows={5}
               defaultValue={entry?.reponse}
-              placeholder="PDF, DOCX, PPTX, JPG et PNG, jusqu'à 50 Mo par envoi."
+              placeholder="PDF, DOCX, PPTX, JPG et PNG, jusqu'à 25 Mo par fichier."
               className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-primary"
             />
             <FieldError messages={state.errors?.reponse} />

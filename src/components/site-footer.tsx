@@ -51,6 +51,11 @@ export async function SiteFooter() {
                 Points Campus Print
               </Link>
             </li>
+            <li>
+              <Link href="/confidentialite" className="hover:text-primary">
+                Vos documents sont-ils en sécurité ?
+              </Link>
+            </li>
           </ul>
         </div>
 
