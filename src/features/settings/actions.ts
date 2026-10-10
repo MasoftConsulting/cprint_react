@@ -28,6 +28,7 @@ export async function updatePricing(
   const parsed = pricingSchema.safeParse({
     price_nb: formData.get('price_nb'),
     price_couleur: formData.get('price_couleur'),
+    price_livret: formData.get('price_livret'),
   })
   if (!parsed.success) {
     return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }

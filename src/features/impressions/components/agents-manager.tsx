@@ -11,6 +11,7 @@ import {
   createAgent,
   deleteAgent,
   rotateAgentToken,
+  setAgentCapabilities,
   type AgentFormState,
 } from '@/features/impressions/actions'
 import { formatCentralDate } from '@/features/impressions/format'
@@ -263,6 +264,66 @@ export function CreateAgentForm() {
   )
 }
 
+/**
+ * Un interrupteur de capacité.
+ *
+ * Deux formulaires distincts plutôt qu'une case à cocher : la borne du
+ * back-office n'a pas de JavaScript à elle, et surtout, n'envoyer que la
+ * capacité qui change évite d'écraser l'autre par mégarde.
+ */
+function Capacite({
+  nom,
+  champ,
+  libelle,
+  actif,
+  aide,
+}: {
+  nom: string
+  champ: 'a3' | 'finisher'
+  libelle: string
+  actif: boolean
+  aide: string
+}) {
+  const [state, formAction] = useActionState(setAgentCapabilities, initialFormState)
+
+  return (
+    <div className="rounded-xl border border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{libelle}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{aide}</p>
+        </div>
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-3 py-1 text-xs font-semibold',
+            actif ? 'bg-emerald-500/10 text-emerald-700' : 'bg-muted text-muted-foreground',
+          )}
+        >
+          {actif ? 'Activé' : 'Non'}
+        </span>
+      </div>
+
+      <form action={formAction} className="mt-3">
+        <input type="hidden" name="name" value={nom} />
+        <input type="hidden" name={champ} value={actif ? 'false' : 'true'} />
+        <SubmitButton
+          pendingLabel="…"
+          className={cn(
+            'h-9 px-4 text-xs shadow-none',
+            actif
+              ? 'bg-secondary text-foreground hover:bg-secondary/70'
+              : 'bg-primary/10 text-primary hover:bg-primary/15',
+          )}
+        >
+          {actif ? 'Retirer' : 'Activer'}
+        </SubmitButton>
+      </form>
+
+      <Message state={state} />
+    </div>
+  )
+}
+
 export function AgentRow({ agent }: { agent: PrintAgent }) {
   const [rotateState, rotateAction] = useActionState(rotateAgentToken, initialAgentState)
   const [deleteState, deleteAction] = useActionState(deleteAgent, initialFormState)
@@ -290,6 +351,26 @@ export function AgentRow({ agent }: { agent: PrintAgent }) {
       <p className="mt-3 text-sm text-muted-foreground">
         Dernier contact : {formatCentralDate(agent.last_seen_at)}
       </p>
+
+      {/* Ce que cette machine sait faire. Déclaré, jamais déduit : proposer un
+          livret là où il n'y a pas de finisseur ferait payer une reliure
+          impossible, et un code payé en A3 serait refusé à l'arrivée. */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Capacite
+          nom={agent.name}
+          champ="a3"
+          libelle="Impression A3"
+          actif={agent.supports_a3}
+          aide="Une page A3 est facturée deux A4."
+        />
+        <Capacite
+          nom={agent.name}
+          champ="finisher"
+          libelle="Finisseur (livret agrafé)"
+          actif={agent.supports_booklet}
+          aide="À cocher seulement après avoir vu un livret correct sortir de cette machine."
+        />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
         <form action={rotateAction}>

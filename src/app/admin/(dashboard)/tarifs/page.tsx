@@ -15,7 +15,13 @@ async function PricingFormLoader() {
   await requireUser()
   const pricing = await getPricing()
 
-  return <PricingForm priceNb={pricing.nb} priceCouleur={pricing.couleur} />
+  return (
+    <PricingForm
+      priceNb={pricing.nb}
+      priceCouleur={pricing.couleur}
+      priceLivret={pricing.livret}
+    />
+  )
 }
 
 export default function AdminPricingPage() {

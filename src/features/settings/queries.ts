@@ -10,6 +10,10 @@ export const SETTINGS_TAG = 'settings'
 const DEFAULTS = {
   price_nb: '30',
   price_couleur: '100',
+  // Zéro par défaut : tant que personne n'a fixé ce prix, la reliure est
+  // offerte. C'est le repli le moins surprenant — facturer un supplément que
+  // l'exploitant n'a jamais saisi le serait davantage.
+  price_livret: '0',
   contact_phone: '+228 91 35 00 00',
   contact_email: 'support@masoft-consulting.com',
   contact_address: 'Lomé, Togo',
@@ -61,6 +65,8 @@ export async function getContactInfo(): Promise<ContactInfo> {
 export type Pricing = {
   nb: number
   couleur: number
+  /** Supplément par exemplaire relié en livret agrafé. 0 = offert. */
+  livret: number
 }
 
 export async function getPricing(): Promise<Pricing> {
@@ -68,6 +74,7 @@ export async function getPricing(): Promise<Pricing> {
   return {
     nb: Number(settings.price_nb),
     couleur: Number(settings.price_couleur),
+    livret: Number(settings.price_livret),
   }
 }
 

@@ -36,6 +36,15 @@ export type JobEvent = {
 export type PrintAgent = {
   name: string
   printer_label: string | null
+  /**
+   * Ce que la machine de ce point sait faire, déclaré par l'exploitant.
+   *
+   * À faux par défaut : une capacité se déclare, elle ne se suppose pas.
+   * Cocher « finisseur » n'est pas un réglage mais une attestation — celle de
+   * quelqu'un qui a vu un livret sortir correctement de **cette** machine.
+   */
+  supports_a3: boolean
+  supports_booklet: boolean
   last_seen_at: string | null
   last_status: string | null
   created_at: string

@@ -14,9 +14,11 @@ const INPUT_CLASS =
 export function PricingForm({
   priceNb,
   priceCouleur,
+  priceLivret,
 }: {
   priceNb: number
   priceCouleur: number
+  priceLivret: number
 }) {
   const [state, formAction] = useActionState(updatePricing, initialFormState)
 
@@ -64,6 +66,37 @@ export function PricingForm({
           </div>
         </section>
       </div>
+
+      {/* La reliure ne se facture pas à la page : une piqûre à cheval coûte
+          la même chose sur huit pages que sur quarante. */}
+      <section className="surface-card mt-6 space-y-5 p-6 sm:p-8">
+        <div>
+          <h2 className="font-display text-lg font-bold">Livret agrafé</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Supplément facturé <strong>par exemplaire relié</strong>, en plus des pages.
+            Proposé uniquement dans les points équipés d&apos;un finisseur, et choisi à la
+            borne du magasin.
+          </p>
+        </div>
+
+        <div className="max-w-xs">
+          <label htmlFor="price_livret" className="text-sm font-medium text-muted-foreground">
+            Supplément par livret (FCFA)
+          </label>
+          <input
+            id="price_livret"
+            name="price_livret"
+            type="number"
+            min={0}
+            defaultValue={priceLivret}
+            className={INPUT_CLASS}
+          />
+          <FieldError messages={state.errors?.price_livret} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            À zéro, la reliure est <strong>offerte</strong>.
+          </p>
+        </div>
+      </section>
 
       <div className="mt-6">
         <SubmitButton pendingLabel="Enregistrement…">Enregistrer</SubmitButton>

@@ -38,6 +38,7 @@ import {
   verifyCode,
   type ColorMode,
   type Duplex,
+  type PaperSize,
   type Payment,
   type PaymentSummary,
   type PrintDocument,
@@ -114,6 +115,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
 
   // Options
   const [colorMode, setColorMode] = useState<ColorMode>('MONO')
+  const [paperSize, setPaperSize] = useState<PaperSize>('A4')
   const [duplex, setDuplex] = useState<Duplex>('SIMPLEX')
   const [copies, setCopies] = useState(1)
 
@@ -132,8 +134,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
    * état dérivé ne fait que l'exprimer à l'écran, sans jamais s'y substituer.
    */
   const optionsKey = useMemo(
-    () => `${[...selected].sort((a, b) => a - b).join(',')}|${colorMode}|${copies}`,
-    [selected, colorMode, copies],
+    () =>
+      `${[...selected].sort((a, b) => a - b).join(',')}|${colorMode}|${copies}|${paperSize}`,
+    [selected, colorMode, copies, paperSize],
   )
 
   const [quoteState, setQuoteState] = useState<{ key: string; quote: Quote } | null>(null)
@@ -158,6 +161,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     setDocuments([])
     setSelected([])
     setColorMode('MONO')
+    setPaperSize('A4')
     setDuplex('SIMPLEX')
     setCopies(1)
     setQuoteState(null)
@@ -312,7 +316,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     let cancelled = false
     // L'adresse permet à la centrale de dire si un compte à crédit couvre
     // l'impression, et combien il restera après.
-    getQuote(selected, colorMode, copies, session?.email ?? null)
+    getQuote(selected, colorMode, copies, session?.email ?? null, paperSize)
       .then((next) => {
         if (!cancelled) setQuoteState({ key: optionsKey, quote: next })
       })
@@ -327,7 +331,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     // `session?.email` en dépendance : c'est elle qui détermine si un compte à
     // crédit couvre l'impression. L'omettre afficherait un devis de client
     // payant à quelqu'un qui a du crédit.
-  }, [step, selected, colorMode, copies, optionsKey, session?.email])
+  }, [step, selected, colorMode, copies, paperSize, optionsKey, session?.email])
 
   /**
    * Relit le devis sans attendre le prochain changement d'options : appelé
@@ -337,13 +341,13 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   const refreshQuote = useCallback(async () => {
     if (selected.length === 0) return
     try {
-      const next = await getQuote(selected, colorMode, copies, sessionEmail)
+      const next = await getQuote(selected, colorMode, copies, sessionEmail, paperSize)
       setQuoteState({ key: optionsKey, quote: next })
     } catch {
       // Le devis affiché reste celui d'avant : le serveur recalculera de
       // toute façon au moment de payer.
     }
-  }, [selected, colorMode, copies, sessionEmail, optionsKey])
+  }, [selected, colorMode, copies, sessionEmail, paperSize, optionsKey])
 
   // --- Recharge du portefeuille ----------------------------------------------
   async function handleTopUp(amount: number) {
@@ -407,7 +411,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     setError(null)
     try {
       const created = await createPayment(
-        { job_ids: selected, color_mode: colorMode, duplex, copies },
+        { job_ids: selected, color_mode: colorMode, duplex, copies, paper_size: paperSize },
         session?.email ?? null,
       )
       setPaymentState({ key: optionsKey, payment: created })
@@ -531,6 +535,8 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
           onPreview={setPreview}
           colorMode={colorMode}
           onColorMode={setColorMode}
+          paperSize={paperSize}
+          onPaperSize={setPaperSize}
           duplex={duplex}
           onDuplex={setDuplex}
           copies={copies}
@@ -707,6 +713,8 @@ function DocumentsStep({
   onPreview,
   colorMode,
   onColorMode,
+  paperSize,
+  onPaperSize,
   duplex,
   onDuplex,
   copies,
@@ -726,6 +734,8 @@ function DocumentsStep({
   onPreview: (jobId: number | null) => void
   colorMode: ColorMode
   onColorMode: (value: ColorMode) => void
+  paperSize: PaperSize
+  onPaperSize: (value: PaperSize) => void
   duplex: Duplex
   onDuplex: (value: Duplex) => void
   copies: number
@@ -790,7 +800,17 @@ function DocumentsStep({
         ))}
       </ul>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Choice
+          label="Format"
+          icon={<FileText className="h-4 w-4" aria-hidden />}
+          value={paperSize}
+          onChange={onPaperSize}
+          options={[
+            { value: 'A4', label: 'A4' },
+            { value: 'A3', label: 'A3' },
+          ]}
+        />
         <Choice
           label="Couleur"
           icon={<Palette className="h-4 w-4" aria-hidden />}
@@ -863,6 +883,17 @@ function DocumentsStep({
               </span>
             )}
           </div>
+
+          {/* L'A3 double le prix de chaque page, et tous les points n'en font
+              pas. Le dire ici, pendant que le choix se fait, évite au client
+              de l'apprendre devant une borne qui refuse son code. */}
+          {quote.paper_size === 'A3' && (
+            <p className="mt-3 border-t border-border/60 pt-3 text-sm text-muted-foreground">
+              <strong className="text-foreground">A3 : deux fois le tarif A4</strong> par page.
+              Tous les points Campus Print ne sont pas équipés — renseignez-vous avant de vous
+              déplacer.
+            </p>
+          )}
 
           {/* Compte à crédit : ce que l'impression coûte, et ce qu'il restera.
               Le solde est en pages noir & blanc, une page couleur en consomme

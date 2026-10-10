@@ -113,12 +113,15 @@ export type VerifiedCode = {
 
 export type ColorMode = 'COLOR' | 'MONO'
 export type Duplex = 'SIMPLEX' | 'DUPLEX'
+/** A4 par défaut. Une page A3 se facture deux A4 — le calcul est fait par le serveur. */
+export type PaperSize = 'A4' | 'A3'
 
 export type PrintOptions = {
   job_ids: number[]
   color_mode: ColorMode
   duplex: Duplex
   copies: number
+  paper_size: PaperSize
 }
 
 /**
@@ -160,6 +163,8 @@ export type Quote = {
   payment_required: boolean
   /** Renseigné seulement si l'adresse correspond à un compte à crédit actif. */
   credit?: CreditQuote | null
+  /** Format retenu pour ce devis. Une page A3 compte double. */
+  paper_size?: PaperSize
   /** Renseigné seulement si l'adresse a déjà rechargé un portefeuille. */
   portefeuille?: WalletQuote | null
   /**
@@ -308,8 +313,9 @@ export function getQuote(
   color_mode: ColorMode,
   copies: number,
   email?: string | null,
+  paper_size: PaperSize = 'A4',
 ) {
-  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email })
+  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email, paper_size })
 }
 
 export function createPayment(options: PrintOptions, email: string | null) {

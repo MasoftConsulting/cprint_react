@@ -8,6 +8,7 @@ import { type FormState } from '@/lib/form-state'
 import { requirePrintAdmin } from './access'
 import { callCentral, centralPublicUrl, PrintAdminError } from './client'
 import {
+  agentCapabilitiesSchema,
   agentNameSchema,
   codeSchema,
   creditAccountSchema,
@@ -324,5 +325,53 @@ export async function adjustWallet(_prev: FormState, formData: FormData): Promis
     }
   } catch (cause) {
     return echec(cause, "L'ajustement n'a pas pu être enregistré.")
+  }
+}
+
+/**
+ * Déclare ce que la machine d'un point sait faire : A3, finisseur.
+ *
+ * Volontairement saisi plutôt que déduit. La présence d'un finisseur ne se
+ * devine pas de façon fiable, et surtout, cocher engage : c'est l'attestation
+ * de quelqu'un qui a vu un livret correct sortir de **cette** machine. Le
+ * livret repose sur des commandes propres à Sharp ; sans cette attestation,
+ * on ferait payer une reliure sur une hypothèse.
+ *
+ * Se retire aussi vite qu'elle se pose : c'est la marche arrière la plus
+ * rapide du service, sans redéploiement ni perte de données.
+ */
+export async function setAgentCapabilities(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requirePrintAdmin()
+
+  const parsed = agentCapabilitiesSchema.safeParse({
+    name: formData.get('name'),
+    a3: formData.get('a3') ?? undefined,
+    finisher: formData.get('finisher') ?? undefined,
+  })
+  if (!parsed.success) {
+    return { status: 'error', message: 'Point inconnu.' }
+  }
+
+  const query = new URLSearchParams()
+  if (parsed.data.a3 !== undefined) query.set('a3', parsed.data.a3)
+  if (parsed.data.finisher !== undefined) query.set('finisher', parsed.data.finisher)
+  if (query.size === 0) {
+    return { status: 'error', message: 'Aucune capacité à modifier.' }
+  }
+
+  try {
+    await callCentral(
+      `/admin/agents/${encodeURIComponent(parsed.data.name)}/capacites?${query}`,
+      { method: 'POST' },
+    )
+    revalidatePath('/admin/impressions/points')
+    const quoi = parsed.data.a3 !== undefined ? 'A3' : 'Finisseur'
+    const etat = (parsed.data.a3 ?? parsed.data.finisher) === 'true' ? 'activé' : 'retiré'
+    return { status: 'success', message: `${quoi} ${etat} pour ${parsed.data.name}.` }
+  } catch (cause) {
+    return echec(cause, "La capacité n'a pas pu être modifiée.")
   }
 }

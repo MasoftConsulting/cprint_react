@@ -4,6 +4,10 @@ import { z } from 'zod'
 export const pricingSchema = z.object({
   price_nb: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
   price_couleur: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
+  // Supplément facturé **par exemplaire relié**, et non par page : une piqûre
+  // à cheval coûte la même chose sur huit pages que sur quarante. Zéro = la
+  // reliure est offerte.
+  price_livret: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
 })
 
 /** Paramètres généraux du site (coordonnées, recharges, stats du hero). */

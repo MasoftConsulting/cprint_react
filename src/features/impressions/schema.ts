@@ -98,3 +98,16 @@ export const walletAdjustSchema = z.object({
     .min(3, 'Expliquez cet ajustement : il n’a aucune trace de paiement.')
     .max(120, 'Cent vingt caractères au maximum.'),
 })
+
+/**
+ * Capacités déclarées d'un point : A3, finisseur (livret agrafé).
+ *
+ * Les deux sont facultatives — on n'envoie à la centrale que celle qui change,
+ * pour qu'un basculement n'écrase jamais l'autre par mégarde.
+ */
+export const agentCapabilitiesSchema = z.object({
+  // `agentNameSchema` est un objet : on ne reprend que le champ du nom.
+  name: agentNameSchema.shape.name,
+  a3: z.enum(['true', 'false']).optional(),
+  finisher: z.enum(['true', 'false']).optional(),
+})
