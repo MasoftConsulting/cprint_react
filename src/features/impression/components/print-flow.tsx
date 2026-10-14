@@ -16,6 +16,7 @@ import {
   Palette,
   RefreshCw,
   Smartphone,
+  Upload,
   Wallet,
 } from 'lucide-react'
 
@@ -674,19 +675,32 @@ function WaitingStep({
             En attente de vos documents…
           </p>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Pas de lecteur de QR code ? Ouvrez cette adresse sur votre téléphone, ou cliquez
-            dessus pour envoyer vos fichiers depuis cet ordinateur :
-            <br />
+          {/* Envoyer depuis cet ordinateur n'est pas un repli obscur : beaucoup
+              de clients sont devant un PC, leurs fichiers sous la main. Noyé
+              dans un paragraphe, ce chemin se lisait comme une note de bas de
+              page — il lui faut un bouton, au même niveau que le QR code. */}
+          <div className="w-full border-t border-border pt-5">
+            <p className="text-center text-sm font-medium">
+              Vos fichiers sont sur cet ordinateur ?
+            </p>
             {/* Même onglet : après l'envoi, la page d'envoi ramène ici
                 (`?session=…`), directement sur les options et le paiement. */}
             <Link
               href={sameTabUploadHref(session.token)}
-              className="mt-1 inline-block font-mono break-all text-primary underline underline-offset-2 hover:text-primary-dark"
+              className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium transition-colors hover:bg-accent"
             >
-              {session.upload_url}
+              <Upload className="h-4 w-4" aria-hidden />
+              Choisir des fichiers sur cet ordinateur
             </Link>
-          </p>
+
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Pas de lecteur de QR code ? Ouvrez cette adresse sur un autre téléphone :
+              <br />
+              <span className="mt-1 inline-block font-mono break-all select-all">
+                {session.upload_url}
+              </span>
+            </p>
+          </div>
         </div>
 
         <button
