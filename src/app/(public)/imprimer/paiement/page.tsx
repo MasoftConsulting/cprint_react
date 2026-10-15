@@ -1,38 +1,37 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Printer } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+
+import { RetourPaiementDepuisUrl } from '@/features/impression/components/retour-paiement'
 
 export const metadata: Metadata = {
-  title: 'Paiement terminé',
+  title: 'Retour de paiement',
   robots: { index: false, follow: false },
 }
 
 /**
  * Page de retour après paiement (`callback_url` transmise à FedaPay).
  *
- * Volontairement purement informative : elle ne déclenche rien et ne lit aucun
- * paramètre d'URL. Le paiement n'est reconnu que par le webhook signé —
- * arriver sur cette adresse ne prouve rien, il suffirait de la taper à la main.
- * Et l'impression n'est jamais lancée d'ici : elle part de la borne, quand le
+ * Elle ne déclenche rien et n'accorde rien : arriver ici ne prouve pas qu'on a
+ * payé, il suffirait de taper l'adresse à la main. Seul le webhook signé fait
+ * foi, et l'impression ne part jamais d'ici — elle part de la borne, quand le
  * client y saisit son code.
+ *
+ * Elle *lit* en revanche le statut réel auprès de la centrale, à partir de la
+ * référence que celle-ci a mise dans l'URL. Avant, elle annonçait « Paiement
+ * enregistré » à tout le monde : un client qui venait d'annuler repartait
+ * convaincu d'avoir payé et se présentait à la borne sans code.
  */
 export default function PaiementPage() {
   return (
-    <section className="mx-auto max-w-lg px-4 py-16 text-center sm:py-24">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Printer className="h-8 w-8" aria-hidden />
-      </span>
-      <h1 className="mt-6 font-display text-2xl font-extrabold sm:text-3xl">
-        Paiement enregistré
-      </h1>
-      <p className="mt-3 text-muted-foreground">
-        Rendez-vous à la borne Campus Print et saisissez votre code de retrait à 6 chiffres :
-        l&apos;impression démarre à ce moment-là, quand vous êtes devant la machine.
-      </p>
-      <p className="mt-6 text-sm text-muted-foreground">
-        Votre code vous a été envoyé par e-mail. Si le paiement n&apos;apparaît pas comme réglé
-        sur la borne d&apos;ici quelques minutes, prévenez un responsable du point Campus Print
-        en gardant votre référence de paiement sous la main.
-      </p>
-    </section>
+    <Suspense
+      fallback={
+        <section className="mx-auto max-w-lg px-4 py-16 text-center sm:py-24">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" aria-hidden />
+        </section>
+      }
+    >
+      <RetourPaiementDepuisUrl nature="PRINT" />
+    </Suspense>
   )
 }
