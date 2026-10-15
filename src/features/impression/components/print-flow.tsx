@@ -627,6 +627,28 @@ function StartStep({
       </Card>
 
       <CodeCard code={code} onChange={onCodeChange} onSubmit={onCodeSubmit} busy={busy} />
+
+      {/* Recharger ne devrait pas supposer d'avoir d'abord un document a
+          imprimer : on prepare son compte quand on y pense, pas quand on est
+          presse. D'ou cette porte d'entree des l'ecran d'accueil. */}
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-base font-bold">Recharger un portefeuille</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Payez une fois, imprimez à l&apos;unité ensuite — pour vous, ou pour
+              quelqu&apos;un d&apos;autre.
+            </p>
+          </div>
+          <Link
+            href="/recharge"
+            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-border px-5 text-sm font-medium transition-colors hover:bg-accent"
+          >
+            <Wallet className="h-4 w-4" aria-hidden />
+            Recharger
+          </Link>
+        </div>
+      </Card>
     </>
   )
 }
@@ -676,12 +698,12 @@ function WaitingStep({
           </p>
 
           {/* Envoyer depuis cet ordinateur n'est pas un repli obscur : beaucoup
-              de clients sont devant un PC, leurs fichiers sous la main. Noyé
+              de clients sont devant l'appareil qui porte leurs fichiers. Noyé
               dans un paragraphe, ce chemin se lisait comme une note de bas de
               page — il lui faut un bouton, au même niveau que le QR code. */}
           <div className="w-full border-t border-border pt-5">
             <p className="text-center text-sm font-medium">
-              Vos fichiers sont sur cet ordinateur ?
+              Vos fichiers sont sur cet appareil ?
             </p>
             {/* Même onglet : après l'envoi, la page d'envoi ramène ici
                 (`?session=…`), directement sur les options et le paiement. */}
@@ -690,7 +712,7 @@ function WaitingStep({
               className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium transition-colors hover:bg-accent"
             >
               <Upload className="h-4 w-4" aria-hidden />
-              Choisir des fichiers sur cet ordinateur
+              Choisir des fichiers sur cet appareil
             </Link>
 
             <p className="mt-4 text-center text-xs text-muted-foreground">

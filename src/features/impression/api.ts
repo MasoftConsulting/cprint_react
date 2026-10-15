@@ -291,6 +291,44 @@ export async function getUploadLimits(): Promise<UploadLimits> {
   }
 }
 
+/**
+ * Montants de recharge proposés, tels que la centrale les accepte.
+ *
+ * Lus et non codés ici : la liste se règle côté centrale
+ * (`WALLET_TOPUP_AMOUNTS`), et une liste figée dans le navigateur finirait
+ * par proposer un montant que la centrale refuse — après que le client l'a
+ * choisi.
+ */
+export type TopUpConfig = {
+  amounts: number[]
+  currency: string
+}
+
+/** Repli si la centrale est injoignable : ses propres valeurs par défaut. */
+export const DEFAULT_TOPUP_CONFIG: TopUpConfig = {
+  amounts: [100, 500, 1000, 2000],
+  currency: 'F CFA',
+}
+
+export async function getTopUpConfig(): Promise<TopUpConfig> {
+  try {
+    const config = await request<{
+      wallet_topup_amounts?: number[]
+      currency?: string
+    }>('/payments/config/pricing')
+    const amounts = (config.wallet_topup_amounts ?? []).filter((m) => m > 0)
+    return {
+      amounts: amounts.length > 0 ? amounts : DEFAULT_TOPUP_CONFIG.amounts,
+      // La devise vient de la centrale, comme les montants : elle se règle
+      // là-bas, et la coder ici finirait par afficher une monnaie que le
+      // service n'emploie plus.
+      currency: config.currency || DEFAULT_TOPUP_CONFIG.currency,
+    }
+  } catch {
+    return DEFAULT_TOPUP_CONFIG
+  }
+}
+
 /** Téléversement depuis le téléphone, après scan du QR code. */
 export function uploadToSession(token: string, files: File[]) {
   const form = new FormData()

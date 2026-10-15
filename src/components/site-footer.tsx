@@ -52,6 +52,11 @@ export async function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/recharge" className="hover:text-primary">
+                Recharger mon portefeuille
+              </Link>
+            </li>
+            <li>
               <Link href="/confidentialite" className="hover:text-primary">
                 Vos documents sont-ils en sécurité ?
               </Link>
