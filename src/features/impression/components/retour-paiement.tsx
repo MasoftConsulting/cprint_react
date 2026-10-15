@@ -38,15 +38,39 @@ export type RetourPaiementProps = {
   /** Ce qu'affiche la page quand l'URL ne porte aucune référence. */
   nature: 'PRINT' | 'TOPUP'
   reference: string
+  /** Le prestataire dit que le client a renoncé. Jamais utilisé pour conclure à une réussite. */
+  abandonSignale?: boolean
 }
 
-/** `?ref=` est ajoutée à la page de retour par la centrale, à la création du paiement. */
+/**
+ * `?ref=` est ajoutée à la page de retour par la centrale, à la création du
+ * paiement. `?status=` vient de FedaPay, qui l'accole à son retour.
+ *
+ * Ce `status` n'est qu'un **indice d'affichage** : il ne peut qu'expliquer un
+ * échec, jamais annoncer une réussite. Un paiement abandonné reste « en
+ * attente » chez FedaPay jusqu'à son expiration, et sans cet indice la page
+ * répondrait « pas encore confirmé » à quelqu'un qui vient d'appuyer sur
+ * Annuler. Le falsifier ne permet donc rien — au pire on se raconte à
+ * soi-même un échec qui n'a pas eu lieu, que le prochain chargement dément.
+ */
 export function RetourPaiementDepuisUrl({ nature }: { nature: 'PRINT' | 'TOPUP' }) {
   const params = useSearchParams()
-  return <RetourPaiement nature={nature} reference={params.get('ref') ?? ''} />
+  return (
+    <RetourPaiement
+      nature={nature}
+      reference={params.get('ref') ?? ''}
+      abandonSignale={ABANDONS.has((params.get('status') ?? '').toLowerCase())}
+    />
+  )
 }
 
-export function RetourPaiement({ nature, reference }: RetourPaiementProps) {
+const ABANDONS = new Set(['canceled', 'cancelled', 'declined', 'failed'])
+
+export function RetourPaiement({
+  nature,
+  reference,
+  abandonSignale = false,
+}: RetourPaiementProps) {
   const [etat, setEtat] = useState<Etat>(
     reference && isPrintApiConfigured
       ? { phase: 'lecture', paiement: null }
@@ -64,8 +88,10 @@ export function RetourPaiement({ nature, reference }: RetourPaiementProps) {
         const paiement = await getPayment(reference)
         if (!vivant) return
         // Tant que c'est en attente, on repasse : le webhook signé arrive
-        // souvent quelques secondes après le retour du navigateur.
-        if (paiement.status === 'PENDING' && tours < TOURS_MAX) {
+        // souvent quelques secondes après le retour du navigateur. Inutile
+        // quand le prestataire a déjà dit que le client avait renoncé : rien
+        // n'arrivera, et le faire patienter une minute serait une moquerie.
+        if (paiement.status === 'PENDING' && !abandonSignale && tours < TOURS_MAX) {
           setEtat({ phase: 'lecture', paiement })
           tours += 1
           setTimeout(lire, INTERVALLE_MS)
@@ -83,7 +109,7 @@ export function RetourPaiement({ nature, reference }: RetourPaiementProps) {
     return () => {
       vivant = false
     }
-  }, [reference])
+  }, [reference, abandonSignale])
 
   if (etat.phase === 'lecture') {
     return (
@@ -130,7 +156,11 @@ export function RetourPaiement({ nature, reference }: RetourPaiementProps) {
       )
     }
 
-    if (paiement.status === 'PENDING') {
+    // Un paiement abandonne sur le telephone reste « en attente » chez
+    // FedaPay jusqu'a son expiration : c'est le retour du navigateur, lui,
+    // qui dit le renoncement. On s'en sert pour nommer l'echec, jamais pour
+    // conclure a une reussite.
+    if (paiement.status === 'PENDING' && !abandonSignale) {
       return (
         <Cadre
           ton="attente"
@@ -157,8 +187,8 @@ export function RetourPaiement({ nature, reference }: RetourPaiementProps) {
         titre="Paiement non abouti"
       >
         <p className="mt-3 text-muted-foreground">
-          {paiement.status === 'CANCELED'
-            ? 'Vous avez annulé ce paiement.'
+          {paiement.status === 'CANCELED' || paiement.status === 'PENDING'
+            ? 'Vous avez interrompu ce paiement.'
             : paiement.status === 'EXPIRED'
               ? 'Ce paiement a expiré avant d’être validé.'
               : 'Votre opérateur a refusé ce paiement.'}{' '}
