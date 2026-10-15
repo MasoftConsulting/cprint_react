@@ -30,10 +30,12 @@ import {
   getQuote,
   getSession,
   isPrintApiConfigured,
+  previewImageUrl,
   previewUrl,
   PrintApiError,
   resumedSession,
   sameTabUploadHref,
+  sessionPreviewImageUrl,
   sessionPreviewUrl,
   topUpWallet,
   verifyCode,
@@ -532,6 +534,13 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
                 ? (jobId) => previewUrl(jobId, code)
                 : null
           }
+          previewImage={
+            session
+              ? (jobId, page) => sessionPreviewImageUrl(session.token, jobId, page)
+              : code
+                ? (jobId, page) => previewImageUrl(jobId, code, page)
+                : null
+          }
           preview={preview}
           onPreview={setPreview}
           colorMode={colorMode}
@@ -745,6 +754,7 @@ function DocumentsStep({
   selected,
   onToggle,
   previewSrc,
+  previewImage,
   preview,
   onPreview,
   colorMode,
@@ -766,6 +776,7 @@ function DocumentsStep({
   selected: number[]
   onToggle: (jobId: number) => void
   previewSrc: ((jobId: number) => string) | null
+  previewImage: ((jobId: number, page: number) => string) | null
   preview: number | null
   onPreview: (jobId: number | null) => void
   colorMode: ColorMode
@@ -825,11 +836,12 @@ function DocumentsStep({
                 </button>
               )}
             </div>
-            {preview === doc.job_id && previewSrc && (
-              <iframe
-                src={previewSrc(doc.job_id)}
-                title={`Aperçu de ${doc.original_filename}`}
-                className="mt-2 h-[28rem] w-full rounded-xl border border-border"
+            {preview === doc.job_id && previewImage && (
+              <Apercu
+                src={(page) => previewImage(doc.job_id, page)}
+                pdf={previewSrc ? previewSrc(doc.job_id) : null}
+                pages={doc.page_count}
+                nom={doc.original_filename}
               />
             )}
           </li>
@@ -1342,6 +1354,122 @@ function CodeCard({
         </button>
       </form>
     </Card>
+  )
+}
+
+/**
+ * Aperçu d'un document, page par page, en image.
+ *
+ * Remplace une `iframe` vers le PDF : celle-ci confiait l'affichage au lecteur
+ * natif du navigateur, qui ne rend rien sur iOS et ouvre à 100 % ailleurs —
+ * une page A4 dans la largeur d'un téléphone n'en montrait qu'un coin. Une
+ * image tient dans la largeur disponible, et se pince pour zoomer.
+ *
+ * Le PDF reste accessible par un lien, pour qui veut le document entier.
+ */
+function Apercu({
+  src,
+  pdf,
+  pages,
+  nom,
+}: {
+  src: (page: number) => string
+  pdf: string | null
+  pages: number
+  nom: string
+}) {
+  const [page, setPage] = useState(1)
+  const [chargement, setChargement] = useState(true)
+  const [erreur, setErreur] = useState(false)
+  const total = Math.max(1, pages)
+
+  function aller(vers: number) {
+    setPage(Math.min(total, Math.max(1, vers)))
+    setChargement(true)
+    setErreur(false)
+  }
+
+  return (
+    <div className="mt-2 rounded-xl border border-border bg-secondary/40 p-3">
+      <div className="relative flex min-h-40 items-center justify-center">
+        {chargement && !erreur && (
+          <span className="absolute flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Chargement de l&apos;aperçu…
+          </span>
+        )}
+        {erreur ? (
+          <p className="px-4 py-8 text-center text-xs text-muted-foreground">
+            L&apos;aperçu n&apos;a pas pu être affiché.
+            {pdf && (
+              <>
+                {' '}
+                <a href={pdf} target="_blank" rel="noopener noreferrer" className="underline">
+                  Ouvrir le document
+                </a>
+              </>
+            )}
+          </p>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            key={page}
+            src={src(page)}
+            alt={`${nom} — page ${page}`}
+            onLoad={() => setChargement(false)}
+            onError={() => {
+              setChargement(false)
+              setErreur(true)
+            }}
+            className={cn(
+              'max-h-[70vh] w-full rounded-lg bg-background object-contain shadow-[var(--shadow-card)] transition-opacity',
+              chargement ? 'opacity-0' : 'opacity-100',
+            )}
+          />
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3">
+        {total > 1 ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => aller(page - 1)}
+              disabled={page <= 1}
+              aria-label="Page précédente"
+              className="h-9 w-9 rounded-lg border border-border text-sm transition-colors hover:bg-accent disabled:opacity-40"
+            >
+              ‹
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Page {page} / {total}
+            </span>
+            <button
+              type="button"
+              onClick={() => aller(page + 1)}
+              disabled={page >= total}
+              aria-label="Page suivante"
+              className="h-9 w-9 rounded-lg border border-border text-sm transition-colors hover:bg-accent disabled:opacity-40"
+            >
+              ›
+            </button>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">1 page</span>
+        )}
+
+        {pdf && (
+          <a
+            href={pdf}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-primary underline underline-offset-2"
+          >
+            Ouvrir le PDF
+          </a>
+        )}
+      </div>
+    </div>
   )
 }
 

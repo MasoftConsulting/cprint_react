@@ -414,6 +414,25 @@ export function previewUrl(jobId: number, code: string) {
   return `${PRINT_API_URL}/jobs/${jobId}/preview?code=${encodeURIComponent(code)}`
 }
 
+/**
+ * Aperçu d'une page **en image**, et non le PDF lui-même.
+ *
+ * Un PDF dans une `iframe` confie l'affichage au lecteur natif du navigateur :
+ * iOS Safari ne le rend pas, et là où le rendu a lieu, le lecteur ouvre à
+ * 100 % — soit une page A4 dans 360 points de large, dont le client ne voit
+ * qu'un coin. Une image se met à l'échelle partout et se pince pour zoomer.
+ */
+export function sessionPreviewImageUrl(token: string, jobId: number, page = 1) {
+  return `${PRINT_API_URL}/sessions/${token}/documents/${jobId}/apercu.png?page=${page}`
+}
+
+export function previewImageUrl(jobId: number, code: string, page = 1) {
+  return (
+    `${PRINT_API_URL}/jobs/${jobId}/apercu.png` +
+    `?code=${encodeURIComponent(code)}&page=${page}`
+  )
+}
+
 export function formatAmount(amount: number, currency: string) {
   return `${amount.toLocaleString('fr-FR')} ${currency}`
 }
