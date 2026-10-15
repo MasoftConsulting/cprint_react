@@ -149,18 +149,27 @@ export async function getActivePrintPointsCount(): Promise<number> {
   return count ?? 0
 }
 
-/** Lecture non mise en cache, pour les écrans d'administration. */
+/**
+ * Lecture non mise en cache, pour les écrans d'administration.
+ *
+ * Même repli que `lireSites` sur l'absence de `agent_name` — et ce n'est pas
+ * une précaution théorique : sans lui, la requête échouait, cette fonction
+ * rendait `null`, et la page d'édition d'un site répondait 404 pour **tous**
+ * les sites tant que la migration n'était pas passée.
+ */
 export async function findPrintPoint(idSite: number): Promise<PrintPoint | null> {
   const supabase = createAnonClient()
-  const { data, error } = await supabase
-    .from('print_points')
-    .select(COLUMNS)
-    .eq('id_site', idSite)
-    .maybeSingle()
+  const requete = (colonnes: string) =>
+    supabase.from('print_points').select(colonnes).eq('id_site', idSite).maybeSingle()
+
+  let { data, error } = await requete(COLUMNS)
+  if (error && colonneAbsente(error)) {
+    ;({ data, error } = await requete(COLUMNS_SANS_AGENT))
+  }
 
   if (error) logQueryError('lecture d’un site', error)
   if (error || !data) return null
-  return normalize(data as Record<string, unknown>)
+  return normalize(data as unknown as Record<string, unknown>)
 }
 
 export function hasCoordinates(point: PrintPoint): boolean {
