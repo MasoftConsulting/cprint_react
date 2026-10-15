@@ -21,12 +21,18 @@ import { formatAmount, getPayment, isPrintApiConfigured, type Payment } from '..
  */
 
 /**
- * Un paiement mobile confirmé met quelques secondes à redescendre du
- * prestataire. On interroge donc un moment avant de conclure, plutôt que
- * d'annoncer « en attente » à quelqu'un qui vient de payer.
+ * Combien de temps on interroge avant de conclure.
+ *
+ * Valider un paiement Mobile Money se fait **sur le téléphone**, en quittant
+ * le navigateur : composer son code, confirmer, revenir. Soixante secondes
+ * n'y suffisent pas, et conclure « pas encore confirmé » pendant que le
+ * client tape son code serait faux au pire moment. On tient donc cinq
+ * minutes, en espaçant les questions une fois la première minute passée.
  */
-const INTERVALLE_MS = 3000
-const TOURS_MAX = 20
+const INTERVALLE_RAPIDE_MS = 3000
+const INTERVALLE_LENT_MS = 8000
+const TOURS_RAPIDES = 20
+const ATTENTE_MAX_MS = 5 * 60 * 1000
 
 type Etat =
   | { phase: 'sans-reference' }
@@ -82,6 +88,7 @@ export function RetourPaiement({
 
     let vivant = true
     let tours = 0
+    const depart = Date.now()
 
     const lire = async () => {
       try {
@@ -91,10 +98,14 @@ export function RetourPaiement({
         // souvent quelques secondes après le retour du navigateur. Inutile
         // quand le prestataire a déjà dit que le client avait renoncé : rien
         // n'arrivera, et le faire patienter une minute serait une moquerie.
-        if (paiement.status === 'PENDING' && !abandonSignale && tours < TOURS_MAX) {
+        if (
+          paiement.status === 'PENDING' &&
+          !abandonSignale &&
+          Date.now() - depart < ATTENTE_MAX_MS
+        ) {
           setEtat({ phase: 'lecture', paiement })
           tours += 1
-          setTimeout(lire, INTERVALLE_MS)
+          setTimeout(lire, tours < TOURS_RAPIDES ? INTERVALLE_RAPIDE_MS : INTERVALLE_LENT_MS)
           return
         }
         setEtat({ phase: 'lu', paiement })
