@@ -1293,13 +1293,30 @@ function ReadyStep({
         <p className="mt-3 text-xs opacity-75">Une copie vous a été envoyée par e-mail.</p>
       </div>
 
-      <div className="mt-6 flex gap-3 rounded-xl bg-accent px-5 py-4 text-sm">
-        <MapPin className="h-5 w-5 shrink-0 text-primary" aria-hidden />
-        <p>
-          <span className="font-semibold">Rendez-vous à la borne Campus Print</span> et saisissez ce
-          code : l&apos;impression démarre à ce moment-là, quand vous êtes devant la machine. Personne
-          d&apos;autre ne peut récupérer vos pages.
-        </p>
+      <div className="mt-6 rounded-xl bg-accent px-5 py-4 text-sm">
+        <div className="flex gap-3">
+          <MapPin className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+          <p>
+            <span className="font-semibold">Rendez-vous à la borne Campus Print</span> et saisissez
+            ce code : l&apos;impression démarre à ce moment-là, quand vous êtes devant la machine.
+            Personne d&apos;autre ne peut récupérer vos pages.
+          </p>
+        </div>
+
+        {/* C'est ici que la question « où, maintenant ? » se pose : le client
+            a son code en main et doit se déplacer. La page des points sait
+            déjà le localiser et trier par distance — on y renvoie plutôt que
+            de refaire un localisateur. Nouvel onglet : le code reste à
+            l'écran, même s'il est aussi parti par e-mail. */}
+        <Link
+          href="/points"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-background text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+        >
+          <MapPin className="h-4 w-4" aria-hidden />
+          Trouver le point le plus proche
+        </Link>
       </div>
 
       <button
