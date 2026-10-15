@@ -16,6 +16,15 @@ export type PrintPoint = {
   latitude: number | null
   longitude: number | null
   actif: boolean
+  /**
+   * Nom du point d'impression dans la centrale (`agents.name`).
+   *
+   * C'est ce qui relie un site commercial à la machine qui imprime, et donc
+   * la seule façon de dire si la borne répond *maintenant*. `null` tant que
+   * personne n'a fait le rapprochement : la page affiche alors le site sans
+   * état, plutôt qu'un état inventé.
+   */
+  agent_name: string | null
 }
 
 /** Un site enrichi du nombre de machines actives qui y sont affectées. */
@@ -24,7 +33,49 @@ export type PrintPointWithMachines = PrintPoint & {
 }
 
 const COLUMNS =
+  'id_site, site_name, site_address, city, country, latitude, longitude, actif, agent_name'
+
+/**
+ * Repli si la colonne `agent_name` n'existe pas encore en base.
+ *
+ * Elle s'ajoute par une migration d'une ligne, et le site ne doit pas tomber
+ * entre le déploiement du code et cette migration — une page de points vide
+ * serait bien pire que des points sans état.
+ */
+const COLUMNS_SANS_AGENT =
   'id_site, site_name, site_address, city, country, latitude, longitude, actif'
+
+function colonneAbsente(error: { message?: string } | null): boolean {
+  return Boolean(error?.message?.includes('agent_name'))
+}
+
+/**
+ * Lit les sites, en retombant sur la liste de colonnes d'avant la migration
+ * si `agent_name` n'existe pas encore.
+ *
+ * Les lignes sont rendues en `Record<string, unknown>` : le client Supabase
+ * déduit son type de la chaîne de `select`, et les deux chemins donneraient
+ * sinon deux types incompatibles pour la même donnée.
+ */
+async function lireSites(): Promise<Record<string, unknown>[] | null> {
+  const supabase = createAnonClient()
+  const requete = (colonnes: string) =>
+    supabase
+      .from('print_points')
+      .select(colonnes)
+      .order('actif', { ascending: false })
+      .order('site_name', { ascending: true })
+
+  let { data, error } = await requete(COLUMNS)
+  if (error && colonneAbsente(error)) {
+    ;({ data, error } = await requete(COLUMNS_SANS_AGENT))
+  }
+  if (error || !data) {
+    logQueryError('lecture des sites', error)
+    return null
+  }
+  return data as unknown as Record<string, unknown>[]
+}
 
 function normalize(row: Record<string, unknown>): PrintPoint {
   return {
@@ -37,6 +88,10 @@ function normalize(row: Record<string, unknown>): PrintPoint {
     latitude: row.latitude === null || row.latitude === undefined ? null : Number(row.latitude),
     longitude: row.longitude === null || row.longitude === undefined ? null : Number(row.longitude),
     actif: row.actif === true,
+    agent_name:
+      row.agent_name === null || row.agent_name === undefined
+        ? null
+        : String(row.agent_name) || null,
   }
 }
 
@@ -46,18 +101,8 @@ export async function getPrintPoints(): Promise<PrintPoint[]> {
   cacheTag(PRINT_POINTS_TAG)
   cacheLife('max')
 
-  const supabase = createAnonClient()
-  const { data, error } = await supabase
-    .from('print_points')
-    .select(COLUMNS)
-    .order('actif', { ascending: false })
-    .order('site_name', { ascending: true })
-
-  if (error || !data) {
-    logQueryError('lecture des sites', error)
-    return []
-  }
-  return data.map((row) => normalize(row as Record<string, unknown>))
+  const data = await lireSites()
+  return data ? data.map(normalize) : []
 }
 
 /**
@@ -72,18 +117,11 @@ export async function getPrintPointsWithMachines(): Promise<PrintPointWithMachin
 
   const supabase = createAnonClient()
   const [sites, counts] = await Promise.all([
-    supabase
-      .from('print_points')
-      .select(COLUMNS)
-      .order('actif', { ascending: false })
-      .order('site_name', { ascending: true }),
+    lireSites(),
     supabase.from('site_machine_counts').select('id_site, machines_actives'),
   ])
 
-  if (sites.error || !sites.data) {
-    logQueryError('lecture des sites', sites.error)
-    return []
-  }
+  if (!sites) return []
   logQueryError('lecture des compteurs de machines', counts.error)
 
   const byId = new Map<number, number>()
@@ -91,8 +129,8 @@ export async function getPrintPointsWithMachines(): Promise<PrintPointWithMachin
     byId.set(Number(row.id_site), Number(row.machines_actives ?? 0))
   }
 
-  return sites.data.map((row) => {
-    const site = normalize(row as Record<string, unknown>)
+  return sites.map((row) => {
+    const site = normalize(row)
     return { ...site, machinesActives: byId.get(site.id_site) ?? 0 }
   })
 }
@@ -127,4 +165,26 @@ export async function findPrintPoint(idSite: number): Promise<PrintPoint | null>
 
 export function hasCoordinates(point: PrintPoint): boolean {
   return point.latitude !== null && point.longitude !== null
+}
+
+/**
+ * Points d'impression déclarés dans la centrale, pour rattacher un site.
+ *
+ * Jamais bloquant : sans centrale configurée, ou si elle ne répond pas, le
+ * formulaire retombe sur une saisie libre plutôt que de refuser d'enregistrer
+ * un site.
+ */
+export async function getAgentsPourRattachement(): Promise<
+  { name: string; printer_label: string | null }[]
+> {
+  const { getPrintAgents } = await import('@/features/impressions/queries')
+  try {
+    const agents = await getPrintAgents()
+    return agents.map((agent) => ({
+      name: agent.name,
+      printer_label: agent.printer_label,
+    }))
+  } catch {
+    return []
+  }
 }

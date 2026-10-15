@@ -6,6 +6,7 @@ import { CardsSkeleton } from '@/components/ui/skeletons'
 import { requireUser } from '@/lib/dal'
 import { updatePrintPoint } from '@/features/print-points/actions'
 import { PrintPointForm } from '@/features/print-points/components/print-point-form'
+import { getAgentsPourRattachement } from '@/features/print-points/queries'
 import { findPrintPoint } from '@/features/print-points/queries'
 
 export const metadata: Metadata = {
@@ -25,7 +26,16 @@ async function EditSiteForm({ params }: { params: Promise<{ id: string }> }) {
   // `bind` fige l'identifiant côté serveur : le client ne peut pas le remplacer.
   const action = updatePrintPoint.bind(null, printPoint.id_site)
 
-  return <PrintPointForm action={action} printPoint={printPoint} submitLabel="Mettre à jour" />
+  const agents = await getAgentsPourRattachement()
+
+  return (
+    <PrintPointForm
+      action={action}
+      printPoint={printPoint}
+      submitLabel="Mettre à jour"
+      agents={agents}
+    />
+  )
 }
 
 export default function EditPrintPointPage(props: PageProps<'/admin/points/[id]'>) {

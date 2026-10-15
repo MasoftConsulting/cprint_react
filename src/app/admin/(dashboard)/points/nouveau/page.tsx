@@ -5,6 +5,7 @@ import { CardsSkeleton } from '@/components/ui/skeletons'
 import { requireUser } from '@/lib/dal'
 import { createPrintPoint } from '@/features/print-points/actions'
 import { PrintPointForm } from '@/features/print-points/components/print-point-form'
+import { getAgentsPourRattachement } from '@/features/print-points/queries'
 
 export const metadata: Metadata = {
   title: "Ajouter un site d'impression",
@@ -13,7 +14,11 @@ export const metadata: Metadata = {
 async function NewSiteForm() {
   await requireUser()
 
-  return <PrintPointForm action={createPrintPoint} submitLabel="Enregistrer" />
+  const agents = await getAgentsPourRattachement()
+
+  return (
+    <PrintPointForm action={createPrintPoint} submitLabel="Enregistrer" agents={agents} />
+  )
 }
 
 export default function NewPrintPointPage() {

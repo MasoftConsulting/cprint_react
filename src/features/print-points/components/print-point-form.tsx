@@ -31,9 +31,15 @@ type Props = {
   action: (state: FormState, formData: FormData) => Promise<FormState>
   printPoint?: PrintPoint
   submitLabel: string
+  /**
+   * Points d'impression déclarés dans la centrale, pour rattacher ce site à
+   * la machine qui y imprime. Vide si la centrale est injoignable : le champ
+   * reste alors saisissable à la main plutôt que de disparaître.
+   */
+  agents?: { name: string; printer_label: string | null }[]
 }
 
-export function PrintPointForm({ action, printPoint, submitLabel }: Props) {
+export function PrintPointForm({ action, printPoint, submitLabel, agents = [] }: Props) {
   const [state, formAction] = useActionState(action, initialFormState)
 
   return (
@@ -74,6 +80,46 @@ export function PrintPointForm({ action, printPoint, submitLabel }: Props) {
               <option value="false">Bientôt disponible</option>
             </select>
             <FieldError messages={state.errors?.actif} />
+          </div>
+
+          {/* Rattachement à la borne qui imprime réellement ici.
+              `actif` dit que le site existe au catalogue ; ce champ permet en
+              plus de savoir si son PC répond maintenant — ce qu'un client qui
+              tient son code a besoin de savoir avant de se déplacer. */}
+          <div>
+            <label htmlFor="agent_name" className="text-sm font-medium text-muted-foreground">
+              Point d&apos;impression
+            </label>
+            {agents.length > 0 ? (
+              <select
+                id="agent_name"
+                name="agent_name"
+                defaultValue={printPoint?.agent_name ?? ''}
+                className={INPUT_CLASS}
+              >
+                <option value="">Aucun — pas encore de borne sur ce site</option>
+                {agents.map((agent) => (
+                  <option key={agent.name} value={agent.name}>
+                    {agent.name}
+                    {agent.printer_label ? ` — ${agent.printer_label}` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="agent_name"
+                name="agent_name"
+                type="text"
+                defaultValue={printPoint?.agent_name ?? ''}
+                placeholder="masc-dekon-01"
+                className={INPUT_CLASS}
+              />
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sans rattachement, la page publique affiche ce site sans dire si sa borne
+              répond.
+            </p>
+            <FieldError messages={state.errors?.agent_name} />
           </div>
         </section>
 

@@ -15,6 +15,10 @@ export default async function PointsPage() {
 
   return (
     <>
+      {/* L'état des bornes n'est pas lu ici : il est demandé par le navigateur
+          à la centrale, comme tout le reste de cette API. La page reste donc
+          entièrement prérendue, et un état en direct n'a de toute façon aucun
+          sens dans une page mise en cache. */}
       <PointsDirectory points={printPoints} />
       <CtaBand />
       <div className="pb-4" />

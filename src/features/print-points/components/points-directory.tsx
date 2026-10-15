@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { MapPin, Printer } from 'lucide-react'
 
@@ -16,6 +16,15 @@ const PointsMap = dynamic(
 
 type Coords = { latitude: number; longitude: number }
 
+/** Ce que la centrale dit d'un point, sur sa route publique `/agents/etats`. */
+type EtatBorne = {
+  nom: string
+  etat: string
+  disponible: boolean
+  a3: boolean
+  livret: boolean
+}
+
 /** Distance à vol d'oiseau (formule de Haversine) — aucun appel d'API. */
 function haversineKm(from: Coords, to: Coords): number {
   const earthRadiusKm = 6371
@@ -29,6 +38,47 @@ function haversineKm(from: Coords, to: Coords): number {
 }
 
 export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }) {
+  /**
+   * État en direct des bornes, demandé par le navigateur à la centrale.
+   *
+   * Pas côté serveur : la page est prérendue et mise en cache, et un état
+   * figé à la construction ferait se déplacer quelqu'un vers une boutique
+   * fermée. Le reste de cette API est déjà appelé depuis le navigateur.
+   *
+   * Vide tant que la réponse n'est pas là, ou si la centrale est injoignable :
+   * la page affiche alors les sites sans état, plutôt qu'un état inventé.
+   */
+  const [etats, setEtats] = useState<
+    Record<string, { disponible: boolean; a3: boolean; livret: boolean }>
+  >({})
+
+  useEffect(() => {
+    const api = (process.env.NEXT_PUBLIC_PRINT_API_URL ?? '').replace(/\/$/, '')
+    if (!api) return
+    let annule = false
+
+    fetch(`${api}/agents/etats`, { cache: 'no-store' })
+      .then((reponse) => (reponse.ok ? reponse.json() : null))
+      .then((corps: { points?: EtatBorne[] } | null) => {
+        if (annule || !corps?.points) return
+        setEtats(
+          Object.fromEntries(
+            corps.points.map((point) => [
+              point.nom,
+              { disponible: point.disponible, a3: point.a3, livret: point.livret },
+            ]),
+          ),
+        )
+      })
+      .catch(() => {
+        // Tunnel coupé, déploiement en cours : la page reste utile sans état.
+      })
+
+    return () => {
+      annule = true
+    }
+  }, [])
+
   const [position, setPosition] = useState<Coords | null>(null)
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -155,6 +205,47 @@ export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }
                   ? 'Aucune machine installée'
                   : `${point.machinesActives} machine${point.machinesActives > 1 ? 's' : ''} disponible${point.machinesActives > 1 ? 's' : ''}`}
               </p>
+
+              {/* État en direct de la borne, distinct de `actif` : celui-ci dit
+                  que le site existe au catalogue, celui-là que le PC répond
+                  maintenant. Un client qui tient son code se déplace sur le
+                  second, pas sur le premier. Rien n'est affiché quand le site
+                  n'est rattaché à aucun point : mieux vaut se taire
+                  qu'inventer. */}
+              {(() => {
+                const etat = point.agent_name ? etats[point.agent_name] : undefined
+                if (!etat) return null
+                const options = [etat.a3 && 'A3', etat.livret && 'Livret agrafé'].filter(Boolean)
+                return (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
+                        etat.disponible
+                          ? 'bg-success/10 text-success'
+                          : 'bg-destructive/10 text-destructive',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-2 w-2 rounded-full',
+                          etat.disponible ? 'bg-success' : 'bg-destructive',
+                        )}
+                        aria-hidden
+                      />
+                      {etat.disponible ? 'Borne en ligne' : 'Borne injoignable'}
+                    </span>
+                    {options.map((option) => (
+                      <span
+                        key={String(option)}
+                        className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-muted-foreground"
+                      >
+                        {option}
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
 
               {distance !== null && (
                 <p className="mt-2 text-sm font-semibold text-primary">

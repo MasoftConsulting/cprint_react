@@ -22,6 +22,14 @@ export const printPointSchema = z.object({
   longitude: optionalCoordinate(z.number().min(-180).max(180)),
   // Les cases à cocher n'apparaissent dans FormData que lorsqu'elles sont cochées.
   actif: z.preprocess((value) => value === 'on' || value === 'true' || value === true, z.boolean()),
+  /**
+   * Point d'impression de la centrale (`agents.name`) installé sur ce site.
+   *
+   * Facultatif : un site peut exister au catalogue avant qu'une borne n'y
+   * soit posée. Sans ce rattachement, la page publique affiche le site sans
+   * état — plutôt qu'un « ouvert » qu'elle ne saurait pas vérifier.
+   */
+  agent_name: optionalText(40),
 })
 
 export type PrintPointInput = z.infer<typeof printPointSchema>
