@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
+import { ChoixDuMoyen } from './choix-du-moyen'
 import {
   DEFAULT_TOPUP_CONFIG,
   formatAmount,
@@ -36,6 +37,7 @@ export function RechargeForm() {
   const [email, setEmail] = useState('')
   const [config, setConfig] = useState(DEFAULT_TOPUP_CONFIG)
   const [choisi, setChoisi] = useState<number | null>(null)
+  const [moyen, setMoyen] = useState('')
   const [busy, setBusy] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [paiement, setPaiement] = useState<Payment | null>(null)
@@ -61,7 +63,7 @@ export function RechargeForm() {
     setBusy(true)
     setErreur(null)
     try {
-      const cree = await topUpWallet(email.trim(), choisi)
+      const cree = await topUpWallet(email.trim(), choisi, moyen)
       setPaiement(cree)
       // La page de paiement s'ouvre dans cet onglet : le client y termine, et
       // revient sur /imprimer/portefeuille.
@@ -148,6 +150,8 @@ export function RechargeForm() {
           ))}
         </div>
       </div>
+
+      <ChoixDuMoyen montant={choisi ?? 0} valeur={moyen} onChange={setMoyen} />
 
       {/* L'adresse n'est pas vérifiée : un solde crédité à une adresse mal
           saisie appartient à cette adresse, et nous ne pouvons pas le

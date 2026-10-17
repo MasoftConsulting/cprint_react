@@ -358,8 +358,8 @@ export function getQuote(
   return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email, paper_size })
 }
 
-export function createPayment(options: PrintOptions, email: string | null) {
-  return postJson<Payment>('/payments', { ...options, email })
+export function createPayment(options: PrintOptions, email: string | null, moyen = '') {
+  return postJson<Payment>('/payments', { ...options, email, moyen })
 }
 
 /**
@@ -370,8 +370,39 @@ export function createPayment(options: PrintOptions, email: string | null) {
  * impressions qui suivent sont débitées du solde, sans nouvel appel ici. Une
  * page à 10 F ne justifierait ni les frais ni la latence d'un paiement mobile.
  */
-export function topUpWallet(email: string, amount: number) {
-  return postJson<Payment>('/payments/topup', { email, amount })
+export function topUpWallet(email: string, amount: number, moyen = '') {
+  return postJson<Payment>('/payments/topup', { email, amount, moyen })
+}
+
+/**
+ * Un moyen de paiement proposable pour un montant donné.
+ *
+ * La liste vient du serveur, qui la tient de chaque prestataire : un moyen
+ * désactivé chez Mollie, ou trop petit pour ses frais fixes, n'y figure pas.
+ * L'écran n'a donc jamais à deviner — et n'affiche jamais un bouton qui
+ * mènerait à une erreur.
+ */
+export type PaymentMean = {
+  /** Ce qu'on renvoie au serveur : « mobile », « mollie:creditcard »… */
+  code: string
+  nom: string
+  /** Pour un paiement en euros, l'équivalent réellement débité. */
+  detail: string
+  logo: string | null
+}
+
+export async function getPaymentMeans(montant: number): Promise<PaymentMean[]> {
+  try {
+    const reponse = await request<{ moyens: PaymentMean[] }>(
+      `/payments/moyens?montant=${encodeURIComponent(montant)}`,
+      { cache: 'no-store' },
+    )
+    return reponse.moyens ?? []
+  } catch {
+    // Centrale injoignable : on ne bloque pas le parcours. Sans choix affiché,
+    // le serveur retombe sur son prestataire par défaut, comme avant.
+    return []
+  }
 }
 
 export function getPayment(reference: string) {

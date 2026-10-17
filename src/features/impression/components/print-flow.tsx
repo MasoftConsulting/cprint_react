@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
+import { ChoixDuMoyen } from './choix-du-moyen'
 import {
   createPayment,
   createSession,
@@ -151,6 +152,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
    * acquis quoi qu'il arrive ensuite.
    */
   const [topUp, setTopUp] = useState<Payment | null>(null)
+  // Moyen de paiement choisi. Vide = le serveur décide, comme avant l'arrivée
+  // d'un second prestataire : rien ne change pour qui ne choisit rien.
+  const [moyen, setMoyen] = useState('')
   const quote = quoteState?.key === optionsKey ? quoteState.quote : null
   const payment = paymentState?.key === optionsKey ? paymentState.payment : null
 
@@ -358,7 +362,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     setBusy(true)
     setError(null)
     try {
-      const created = await topUpWallet(session.email, amount)
+      const created = await topUpWallet(session.email, amount, moyen)
       setTopUp(created)
       if (created.status === 'APPROVED') {
         // Mode simulé : le solde est déjà crédité.
@@ -416,6 +420,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
       const created = await createPayment(
         { job_ids: selected, color_mode: colorMode, duplex, copies, paper_size: paperSize },
         session?.email ?? null,
+        moyen,
       )
       setPaymentState({ key: optionsKey, payment: created })
 
@@ -518,6 +523,8 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
 
       {step === 'documents' && (
         <DocumentsStep
+          moyen={moyen}
+          onMoyen={setMoyen}
           documents={documents}
           selected={selected}
           onToggle={(jobId) =>
@@ -767,6 +774,8 @@ function DocumentsStep({
   onCopies,
   quote,
   busy,
+  moyen,
+  onMoyen,
   onPay,
   onTopUp,
   onReady,
@@ -789,6 +798,8 @@ function DocumentsStep({
   onCopies: (value: number) => void
   quote: Quote | null
   busy: boolean
+  moyen: string
+  onMoyen: (code: string) => void
   onPay: () => void
   /** `null` dans le parcours par code : recharger exige l'adresse de la session. */
   onTopUp: ((amount: number) => void) | null
@@ -1054,10 +1065,17 @@ function DocumentsStep({
             Imprimer sur mon solde
           </PrimaryButton>
         ) : quote?.payment_required ? (
-          <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
-            <CreditCard className="h-5 w-5" aria-hidden />
-            Payer {formatAmount(quote.amount, quote.currency)}
-          </PrimaryButton>
+          <>
+            {/* Le choix ne s'affiche que là : un crédit ou un solde qui
+                couvre l'impression ne passe par aucun prestataire, et
+                proposer un moyen de paiement annoncerait un débit qui
+                n'aura pas lieu. */}
+            <ChoixDuMoyen montant={quote.amount} valeur={moyen} onChange={onMoyen} />
+            <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
+              <CreditCard className="h-5 w-5" aria-hidden />
+              Payer {formatAmount(quote.amount, quote.currency)}
+            </PrimaryButton>
+          </>
         ) : (
           <PrimaryButton onClick={onReady} disabled={busy || nothingSelected} busy={busy}>
             <CheckCircle2 className="h-5 w-5" aria-hidden />
