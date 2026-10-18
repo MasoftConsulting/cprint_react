@@ -308,7 +308,7 @@ export type TopUpConfig = {
 
 /** Repli si la centrale est injoignable : ses propres valeurs par défaut. */
 export const DEFAULT_TOPUP_CONFIG: TopUpConfig = {
-  amounts: [100, 500, 1000, 2000],
+  amounts: [100, 500, 1000, 2000, 5000],
   currency: 'F CFA',
 }
 

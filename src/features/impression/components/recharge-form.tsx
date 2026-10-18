@@ -131,7 +131,10 @@ export function RechargeForm() {
 
       <div className="mt-6">
         <span className="text-sm font-medium text-muted-foreground">Montant</span>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {/* Une ligne de colonnes égales sur grand écran, quel que soit le
+            nombre de montants : la liste se règle côté centrale, et une grille
+            figée à 4 laissait un cinquième montant seul sur sa ligne. */}
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
           {config.amounts.map((montant) => (
             <button
               key={montant}
