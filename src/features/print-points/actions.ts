@@ -7,23 +7,13 @@ import { z } from 'zod'
 import { requireUser } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
-import { printPointSchema } from '@/features/print-points/schema'
+import { parsePrintPoint } from '@/features/print-points/schema'
 import { PRINT_POINTS_TAG } from '@/features/print-points/queries'
 
 /** Code d'erreur Postgres pour une violation de contrainte d'unicité. */
 const UNIQUE_VIOLATION = '23505'
 
-function parse(formData: FormData) {
-  return printPointSchema.safeParse({
-    site_name: formData.get('site_name'),
-    site_address: formData.get('site_address'),
-    city: formData.get('city'),
-    country: formData.get('country'),
-    latitude: formData.get('latitude'),
-    longitude: formData.get('longitude'),
-    actif: formData.get('actif'),
-  })
-}
+const parse = parsePrintPoint
 
 const DUPLICATE_NAME = { site_name: ['Un site avec ce nom existe déjà.'] }
 

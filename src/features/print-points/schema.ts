@@ -34,6 +34,25 @@ export const printPointSchema = z.object({
 
 export type PrintPointInput = z.infer<typeof printPointSchema>
 
+/**
+ * Lit le formulaire d'un site **d'après le schéma**, champ par champ.
+ *
+ * L'ancienne lecture recopiait la liste des champs à la main. Le jour où
+ * `agent_name` a été ajouté au schéma mais pas à cette liste, le champ
+ * arrivait `undefined`, le schéma le refusait, et plus aucun site ne pouvait
+ * être enregistré — ni créé, ni modifié. Dériver la liste du schéma rend cet
+ * oubli impossible.
+ *
+ * Un champ absent du formulaire vaut `null` (`FormData.get`), ce que chaque
+ * champ facultatif accepte, et qu'une case décochée doit valoir.
+ */
+export function parsePrintPoint(formData: FormData) {
+  const brut = Object.fromEntries(
+    Object.keys(printPointSchema.shape).map((champ) => [champ, formData.get(champ)]),
+  )
+  return printPointSchema.safeParse(brut)
+}
+
 export function statusLabel(actif: boolean): string {
   return actif ? 'Actif' : 'Bientôt disponible'
 }
