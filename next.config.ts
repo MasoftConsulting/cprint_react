@@ -18,6 +18,31 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+
+  // En-têtes de sécurité. Vercel n'ajoutait que HSTS.
+  //
+  // - `X-Frame-Options: DENY` : le site n'est jamais affiché dans une iframe.
+  //   Sans cela, une page tierce pouvait encadrer /admin et faire cliquer un
+  //   exploitant connecté sur des boutons invisibles (détournement de clic).
+  // - `Referrer-Policy` : les adresses du parcours portent des jetons
+  //   (`/imprimer/upload?session=…`, `?ref=CP-…`). Vers une autre origine
+  //   (tuiles de carte, logos des prestataires), seule l'origine est transmise.
+  // - Pas de Content-Security-Policy ici : elle demande d'énumérer chaque
+  //   source (cartes Leaflet, polices, logos Mollie, API d'impression) et de
+  //   l'éprouver page par page. Mal réglée, elle casse le paiement en silence.
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig

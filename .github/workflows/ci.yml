@@ -1,0 +1,25 @@
+# Typage et lint a chaque poussee.
+#
+# Pas de build ici, volontairement : il exige les cles Supabase (src/lib/env.ts
+# casse le build sans elles, par conception), et Vercel construit deja chaque
+# commit - un build en echec n'est jamais mis en ligne, la version precedente
+# reste servie. Ce controle-ci attrape plus tot ce que le build attraperait.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  qualite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
