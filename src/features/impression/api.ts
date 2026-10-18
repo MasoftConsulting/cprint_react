@@ -391,17 +391,29 @@ export type PaymentMean = {
   logo: string | null
 }
 
-export async function getPaymentMeans(montant: number): Promise<PaymentMean[]> {
+export type PaymentMeans = {
+  moyens: PaymentMean[]
+  /**
+   * Montant à partir duquel d'autres moyens que le Mobile Money existent,
+   * `null` quand il n'y a pas d'autre prestataire du tout.
+   *
+   * Sert à **dire pourquoi** la liste est courte : un écran qui propose un
+   * choix à 2 000 F CFA et aucun à 1 000 laisse croire à une panne.
+   */
+  autres_moyens_des: number | null
+}
+
+export async function getPaymentMeans(montant: number): Promise<PaymentMeans> {
   try {
-    const reponse = await request<{ moyens: PaymentMean[] }>(
+    const reponse = await request<PaymentMeans>(
       `/payments/moyens?montant=${encodeURIComponent(montant)}`,
       { cache: 'no-store' },
     )
-    return reponse.moyens ?? []
+    return { moyens: reponse.moyens ?? [], autres_moyens_des: reponse.autres_moyens_des ?? null }
   } catch {
     // Centrale injoignable : on ne bloque pas le parcours. Sans choix affiché,
     // le serveur retombe sur son prestataire par défaut, comme avant.
-    return []
+    return { moyens: [], autres_moyens_des: null }
   }
 }
 

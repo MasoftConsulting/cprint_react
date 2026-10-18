@@ -151,7 +151,19 @@ export function RechargeForm() {
         </div>
       </div>
 
-      <ChoixDuMoyen montant={choisi ?? 0} valeur={moyen} onChange={setMoyen} />
+      <ChoixDuMoyen
+        montant={choisi ?? 0}
+        valeur={moyen}
+        devise={config.currency}
+        onChange={setMoyen}
+        surSeuil={(seuil) => (
+          <>
+            <strong className="text-foreground">Carte bancaire et PayPal</strong> à partir de{' '}
+            {seuil}. En dessous, les frais du prestataire dépasseraient la recharge —
+            choisissez un montant plus élevé, ou rechargez en Mobile Money.
+          </>
+        )}
+      />
 
       {/* L'adresse n'est pas vérifiée : un solde crédité à une adresse mal
           saisie appartient à cette adresse, et nous ne pouvons pas le

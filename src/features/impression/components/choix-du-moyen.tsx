@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Smartphone } from 'lucide-react'
 
-import { getPaymentMeans, type PaymentMean } from '../api'
+import { formatAmount, getPaymentMeans, type PaymentMeans } from '../api'
 
 /**
  * Choix du moyen de paiement, pour un montant donné.
@@ -23,25 +23,36 @@ import { getPaymentMeans, type PaymentMean } from '../api'
 export function ChoixDuMoyen({
   montant,
   valeur,
+  devise = 'F CFA',
+  surSeuil,
   onChange,
 }: {
   montant: number
   valeur: string
+  devise?: string
+  /**
+   * Ce qu'on affiche quand d'autres moyens existent mais que le montant est
+   * trop petit pour eux. Diffère selon l'écran : sur la recharge, il suffit
+   * de choisir un montant plus élevé ; sur un paiement d'impression, le
+   * montant est ce qu'il est, et le chemin passe par le portefeuille.
+   */
+  surSeuil?: (seuil: string) => React.ReactNode
   onChange: (code: string) => void
 }) {
   // La liste est gardée AVEC le montant pour lequel elle vaut : comparer les
   // deux dit si on est à jour, sans avoir à remettre l'état à zéro au début de
   // chaque effet (ce qui déclenche un rendu en cascade).
-  const [charge, setCharge] = useState<{ pour: number; liste: PaymentMean[] } | null>(null)
+  const [charge, setCharge] = useState<{ pour: number; moyens: PaymentMeans } | null>(null)
 
   useEffect(() => {
     if (!montant) return
     let vivant = true
-    getPaymentMeans(montant).then((liste) => {
+    getPaymentMeans(montant).then((moyens) => {
       if (!vivant) return
-      setCharge({ pour: montant, liste })
+      setCharge({ pour: montant, moyens })
       // Présélectionner le premier évite un aller-retour : le client qui ne
       // veut pas choisir n'a rien à faire.
+      const liste = moyens.moyens
       if (liste.length > 0 && !liste.some((m) => m.code === valeur)) {
         onChange(liste[0].code)
       }
@@ -56,9 +67,9 @@ export function ChoixDuMoyen({
 
   if (!montant) return null
 
-  const moyens = charge?.pour === montant ? charge.liste : null
+  const charges = charge?.pour === montant ? charge.moyens : null
 
-  if (moyens === null) {
+  if (charges === null) {
     return (
       <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -67,7 +78,20 @@ export function ChoixDuMoyen({
     )
   }
 
-  if (moyens.length <= 1) return null
+  const moyens = charges.moyens
+  const seuil = charges.autres_moyens_des
+
+  // Un seul moyen, mais d'autres existent plus haut : le dire. Les masquer en
+  // silence laisse croire à une panne, et prive le client d'une information
+  // qui lui permettrait d'agir.
+  if (moyens.length <= 1) {
+    if (!seuil || montant >= seuil || !surSeuil) return null
+    return (
+      <p className="mt-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+        {surSeuil(formatAmount(seuil, devise))}
+      </p>
+    )
+  }
 
   return (
     <fieldset className="mt-6">

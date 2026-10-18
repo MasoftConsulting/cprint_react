@@ -1070,7 +1070,20 @@ function DocumentsStep({
                 couvre l'impression ne passe par aucun prestataire, et
                 proposer un moyen de paiement annoncerait un débit qui
                 n'aura pas lieu. */}
-            <ChoixDuMoyen montant={quote.amount} valeur={moyen} onChange={onMoyen} />
+            <ChoixDuMoyen
+              montant={quote.amount}
+              valeur={moyen}
+              devise={quote.currency}
+              onChange={onMoyen}
+              surSeuil={(seuil) => (
+                <>
+                  Pour payer par <strong className="text-foreground">carte ou PayPal</strong>,
+                  rechargez d&apos;abord votre portefeuille (à partir de {seuil}) : une
+                  impression coûte trop peu pour couvrir les frais d&apos;un paiement par
+                  carte. Vos impressions seront ensuite déduites de ce solde.
+                </>
+              )}
+            />
             <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
               <CreditCard className="h-5 w-5" aria-hidden />
               Payer {formatAmount(quote.amount, quote.currency)}
