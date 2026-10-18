@@ -81,9 +81,19 @@ Documentation complète du flux, des garde-fous de paiement et du déploiement :
 ```bash
 npm run dev        # serveur de développement
 npm run build      # build de production
-npm run typecheck  # tsc --noEmit
+npm run typecheck  # next typegen && tsc --noEmit
 npm run lint       # eslint
 ```
+
+`typecheck` génère d'abord les types de Next.js (`PageProps`…) : sans
+`next typegen`, il ne passait que sur un poste où un build avait déjà tourné,
+et échouait sur toute machine neuve — la CI comprise.
+
+**La CI garde la production.** `.github/workflows/ci.yml` (job `qualite`)
+lance typecheck et lint à chaque poussée, et Vercel ne promeut un déploiement
+sur `www.mascprint.online` qu'une fois ce job au vert (Deployment Checks). Un
+commit rouge est construit mais jamais publié. Renommer le job oblige à
+refaire le réglage dans Vercel.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
