@@ -7,6 +7,7 @@ import { ButtonLink } from '@/components/ui/button-link'
 import { printEntryHref } from '@/features/impression/api'
 import { getActivePrintPointsCount } from '@/features/print-points/queries'
 import { getPricing, getSettings } from '@/features/settings/queries'
+import { MARQUE } from '@/lib/marque'
 
 const STEPS = [
   {
@@ -25,19 +26,19 @@ const STEPS = [
     Icon: Smartphone,
     num: '03',
     title: 'Payez',
-    text: 'Flooz, T-Money/Mixx ou carte prépayée Campus Print.',
+    text: `Flooz, T-Money/Mixx ou carte prépayée ${MARQUE.nom}.`,
   },
   {
     Icon: MapPin,
     num: '04',
     title: 'Récupérez',
-    text: 'Sur la borne Campus Print de votre campus.',
+    text: `Sur la borne ${MARQUE.nom} la plus proche.`,
   },
 ]
 
 const BENEFITS = [
   { Icon: Clock, text: 'Impression prête en 3 minutes en moyenne' },
-  { Icon: CreditCard, text: 'Flooz, T-Money/Mixx ou carte prépayée Campus Print' },
+  { Icon: CreditCard, text: `Flooz, T-Money/Mixx ou carte prépayée ${MARQUE.nom}` },
   { Icon: ShieldCheck, text: 'Vos fichiers sont supprimés automatiquement après 24 h' },
 ]
 
@@ -62,7 +63,7 @@ export default async function HomePage() {
               Imprimez vos cours en 3 minutes, sur votre campus.
             </h1>
             <p className="mt-5 max-w-xl text-base opacity-85 sm:text-lg">
-              Campus Print est le service d&apos;impression en libre-service des campus togolais :
+              {MARQUE.nom} est le service d&apos;impression en libre-service, sur les campus et dans nos points partenaires :
               envoyez votre document, payez en Mobile Money, récupérez votre impression sur place.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -75,7 +76,7 @@ export default async function HomePage() {
           <div className="overflow-hidden rounded-3xl border border-primary-foreground/15 shadow-[var(--shadow-elegant)]">
             <Image
               src="/images/hero-point-sharp.jpg"
-              alt="Point Campus Print sur un campus : deux multifonctions Sharp en libre-service sous un abri bleu, une étudiante et un étudiant au téléphone"
+              alt={`Point ${MARQUE.nom} sur un campus : deux multifonctions Sharp en libre-service sous un abri bleu, une étudiante et un étudiant au téléphone`}
               width={1200}
               height={750}
               priority

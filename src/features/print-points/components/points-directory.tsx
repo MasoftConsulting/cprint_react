@@ -7,6 +7,7 @@ import { MapPin, Printer } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { PrintPointWithMachines } from '@/features/print-points/queries'
 import { formatSiteAddress, statusLabel } from '@/features/print-points/schema'
+import { MARQUE } from '@/lib/marque'
 
 // Leaflet manipule `window` : il ne doit pas être rendu côté serveur.
 const PointsMap = dynamic(
@@ -152,7 +153,7 @@ export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }
     <>
       <section className="bg-[image:var(--gradient-hero)] text-primary-foreground">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
-          <span className="text-sm font-semibold opacity-90">Points Campus Print</span>
+          <span className="text-sm font-semibold opacity-90">Points {MARQUE.nom}</span>
           <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-5xl">
             Une borne sur votre campus
           </h1>

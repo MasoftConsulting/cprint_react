@@ -7,11 +7,12 @@ import { Menu, Printer } from 'lucide-react'
 
 import { printEntryHref } from '@/features/impression/api'
 import { cn } from '@/lib/cn'
+import { MARQUE } from '@/lib/marque'
 
 const NAV_LINKS = [
   { href: '/comment-ca-marche', label: 'Comment ça marche' },
   { href: '/tarifs', label: 'Tarifs' },
-  { href: '/points', label: 'Points Campus' },
+  { href: '/points', label: 'Points d’impression' },
   { href: '/universites', label: 'Universités' },
   { href: '/a-propos', label: 'À propos' },
   { href: '/contact', label: 'Contact' },
@@ -29,8 +30,8 @@ export function SiteHeader() {
             <Printer className="h-5 w-5" aria-hidden />
           </span>
           <span className="font-display text-base leading-tight font-bold">
-            Campus Print
-            <span className="block text-[11px] font-medium text-muted-foreground">by MaSoft</span>
+            {MARQUE.nom}
+            <span className="block text-[11px] font-medium text-muted-foreground">{MARQUE.signature}</span>
           </span>
         </Link>
 

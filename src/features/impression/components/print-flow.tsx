@@ -50,6 +50,7 @@ import {
   type Quote,
   type WalletQuote,
 } from '../api'
+import { MARQUE } from '@/lib/marque'
 
 /**
  * Parcours d'impression en ligne — tout sauf l'impression elle-même.
@@ -475,7 +476,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
       <Card>
         <Notice tone="warning" title="Bientôt disponible">
           L&apos;impression en ligne arrive très prochainement. En attendant, rendez-vous
-          directement sur une borne Campus Print.
+          directement sur une borne {MARQUE.nom}.
         </Notice>
       </Card>
     )
@@ -949,7 +950,7 @@ function DocumentsStep({
           {quote.paper_size === 'A3' && (
             <p className="mt-3 border-t border-border/60 pt-3 text-sm text-muted-foreground">
               <strong className="text-foreground">A3 : deux fois le tarif A4</strong> par page.
-              Tous les points Campus Print ne sont pas équipés — renseignez-vous avant de vous
+              Tous les points {MARQUE.nom} ne sont pas équipés — renseignez-vous avant de vous
               déplacer.
             </p>
           )}
@@ -1328,7 +1329,7 @@ function ReadyStep({
         <div className="flex gap-3">
           <MapPin className="h-5 w-5 shrink-0 text-primary" aria-hidden />
           <p>
-            <span className="font-semibold">Rendez-vous à la borne Campus Print</span> et saisissez
+            <span className="font-semibold">Rendez-vous à la borne {MARQUE.nom}</span> et saisissez
             ce code : l&apos;impression démarre à ce moment-là, quand vous êtes devant la machine.
             Personne d&apos;autre ne peut récupérer vos pages.
           </p>

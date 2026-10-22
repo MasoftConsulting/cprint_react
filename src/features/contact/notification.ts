@@ -3,6 +3,7 @@ import 'server-only'
 import { sendMail } from '@/lib/mailer'
 import { getSettings } from '@/features/settings/queries'
 import type { ContactInput } from '@/features/contact/schema'
+import { MARQUE } from '@/lib/marque'
 
 function escapeHtml(value: string): string {
   return value
@@ -41,7 +42,7 @@ export async function notifyNewContactMessage(message: ContactInput): Promise<vo
   const result = await sendMail({
     to: destinataire,
     // Le sujet reprend le nom : la boîte de réception reste lisible sans ouvrir.
-    subject: `Campus Print — nouveau message de ${message.nom}`,
+    subject: `${MARQUE.nom} — nouveau message de ${message.nom}`,
     text: lignes.join('\n'),
     html: `
       <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;color:#1b2033">

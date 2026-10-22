@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Campus Print — schéma Supabase (installation neuve)
+-- MASC Print — schéma Supabase (installation neuve)
 -- À coller dans Supabase Studio > SQL Editor, puis exécuter une fois.
 --
 -- Pour une base déjà en service, n'utilisez PAS ce fichier :

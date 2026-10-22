@@ -1,4 +1,5 @@
 import type { AgentCredentials } from './types'
+import { MARQUE } from '@/lib/marque'
 
 /**
  * Fabrication de l'installeur d'un point d'impression.
@@ -55,7 +56,7 @@ export function scriptDInstallation(credentials: AgentCredentials): string {
 
   // Commentaires sans accents : la console Windows n'est pas en UTF-8 par
   // defaut, et « généré » y apparaitrait « gÃ©nÃ©rÃ© ».
-  return `# Campus Print - installeur du point "${name}"
+  return `# ${MARQUE.nom} - installeur du point "${name}"
 #
 # Genere par l'administration le ${date}.
 #
@@ -96,7 +97,7 @@ try {
 # ne porte que les valeurs de ce point : une correction de l'installation se
 # deploie sur la centrale, sans regenerer les installeurs deja distribues.
 Write-Host ""
-Write-Host "Campus Print - installation du point '$Nom'"
+Write-Host "${MARQUE.nom} - installation du point '$Nom'"
 Write-Host "Recuperation du script d'installation depuis $Centrale ..."
 
 try {

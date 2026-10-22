@@ -21,13 +21,14 @@ import {
 import { cn } from '@/lib/cn'
 import type { AdminUser } from '@/lib/dal'
 import { logout } from '@/features/auth/actions'
+import { MARQUE } from '@/lib/marque'
 
 const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Tableau de bord', Icon: Settings2 },
   // Affiché seulement aux comptes autorisés (voir features/impressions/access.ts) :
   // cette section donne accès aux documents des clients et aux points d'impression.
   { href: '/admin/impressions', label: 'Impressions', Icon: Printer, restreint: true },
-  { href: '/admin/points', label: 'Sites Campus', Icon: MapPin },
+  { href: '/admin/points', label: 'Sites', Icon: MapPin },
   { href: '/admin/machines', label: 'Machines', Icon: Server },
   { href: '/admin/gestion', label: 'Gestion', Icon: Network },
   { href: '/admin/tarifs', label: 'Tarifs', Icon: CreditCard },
@@ -112,7 +113,7 @@ export function AdminShell({
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15">
               <Printer className="h-5 w-5" aria-hidden />
             </span>
-            <span className="font-display text-base font-bold">Campus Print</span>
+            <span className="font-display text-base font-bold">{MARQUE.nom}</span>
           </div>
 
           <nav className="mt-4 space-y-1 px-3">

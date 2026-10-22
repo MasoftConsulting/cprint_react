@@ -5,6 +5,7 @@ import { CtaBand } from '@/components/cta-band'
 import { FaqAccordion } from '@/components/faq-accordion'
 import { getFaqForPage } from '@/features/faq/queries'
 import { ButtonLink } from '@/components/ui/button-link'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Comment ça marche',
@@ -28,13 +29,13 @@ const STEPS = [
   {
     Icon: CreditCard,
     title: 'Payez en Mobile Money',
-    text: "Validez votre paiement via Flooz, T-Money/Mixx ou votre carte prépayée Campus Print. Vous recevez un code de retrait.",
-    items: ['Flooz', 'T-Money / Mixx', 'Carte prépayée Campus Print'],
+    text: `Validez votre paiement via Flooz, T-Money/Mixx ou votre carte prépayée ${MARQUE.nom}. Vous recevez un code de retrait.`,
+    items: ['Flooz', 'T-Money / Mixx', `Carte prépayée ${MARQUE.nom}`],
   },
   {
     Icon: MapPin,
     title: 'Récupérez votre impression',
-    text: "Rendez-vous au point Campus Print de votre campus, saisissez votre code sur la borne Sharp et récupérez vos pages.",
+    text: `Rendez-vous au point ${MARQUE.nom} le plus proche, saisissez votre code sur la borne Sharp et récupérez vos pages.`,
     items: ['Code de retrait valable 24 h', 'Impression en 3 minutes en moyenne'],
   },
 ]

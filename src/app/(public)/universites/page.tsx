@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { ButtonLink } from '@/components/ui/button-link'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Pour les universités — Devenir campus partenaire',
@@ -48,7 +49,8 @@ export default function UniversitesPage() {
             Offrez l&apos;impression moderne à vos étudiants, sans rien investir
           </h1>
           <p className="mt-4 max-w-xl opacity-85">
-            Campus Print s&apos;installe sur votre campus, s&apos;entretient tout seul et vous
+            {MARQUE.declinaisonCampus}, la déclinaison de {MARQUE.nom} pour les universités,
+            s&apos;installe sur votre campus, s&apos;entretient tout seul et vous
             reverse une part des revenus.
           </p>
           <ButtonLink href="/contact" className="mt-6">

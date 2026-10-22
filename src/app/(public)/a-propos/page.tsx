@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 
 import { CtaBand } from '@/components/cta-band'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'À propos — MaSoft Consulting, partenaire agréé Sharp',
   description:
-    'Campus Print est développé par MaSoft Consulting, partenaire agréé Sharp et expert en solutions IT au Togo.',
+    `${MARQUE.nom} est développé par MaSoft Consulting, partenaire agréé Sharp et expert en solutions IT au Togo.`,
 }
 
 const CARDS = [
@@ -34,7 +35,7 @@ export default function AProposPage() {
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           <span className="text-sm font-semibold opacity-90">À propos</span>
           <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-5xl">
-            Campus Print, une initiative MaSoft Consulting
+            {MARQUE.nom}, une initiative MaSoft Consulting
           </h1>
           <p className="mt-4 max-w-2xl opacity-85">
             Expert en solutions IT et partenaire agréé Sharp, MaSoft Consulting accompagne
@@ -46,7 +47,7 @@ export default function AProposPage() {
       <section className="mx-auto max-w-4xl px-4 py-16 text-muted-foreground">
         <p>
           MaSoft Consulting conçoit et opère des infrastructures d&apos;impression et des solutions
-          informatiques pour les organisations togolaises. Campus Print est né d&apos;un constat
+          informatiques pour les organisations togolaises. {MARQUE.nom} est né d&apos;un constat
           simple : imprimer un cours ou un mémoire reste long, cher et compliqué pour les étudiants.
           Nous avons donc rapproché l&apos;impression de là où ils étudient, avec un paiement
           qu&apos;ils utilisent déjà tous les jours : le Mobile Money.

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Outfit, Plus_Jakarta_Sans } from 'next/font/google'
 
 import './globals.css'
+import { MARQUE } from '@/lib/marque'
 
 // Polices auto-hébergées : pas de requête vers Google, pas de décalage de police.
 const outfit = Outfit({
@@ -20,8 +21,8 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Campus Print by MaSoft — Imprimez sur votre campus au Togo',
-    template: '%s — Campus Print by MaSoft',
+    default: `${MARQUE.nom} ${MARQUE.signature} — Impression en libre-service`,
+    template: `%s — ${MARQUE.nom} ${MARQUE.signature}`,
   },
   description:
     'Envoyez votre document depuis votre téléphone, payez en Flooz ou T-Money/Mixx et récupérez votre impression en quelques minutes sur votre campus.',

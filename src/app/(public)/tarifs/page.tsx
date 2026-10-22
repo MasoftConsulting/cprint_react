@@ -5,6 +5,7 @@ import { FaqAccordion } from '@/components/faq-accordion'
 import { getFaqForPage } from '@/features/faq/queries'
 import { PriceCalculator } from '@/components/price-calculator'
 import { getPricing, getRechargeAmounts } from '@/features/settings/queries'
+import { MARQUE } from '@/lib/marque'
 
 export async function generateMetadata(): Promise<Metadata> {
   const pricing = await getPricing()
@@ -71,7 +72,7 @@ export default async function TarifsPage() {
         </div>
 
         <div className="surface-card mt-6 p-8">
-          <h2 className="font-display text-xl font-bold">Carte prépayée Campus Print</h2>
+          <h2 className="font-display text-xl font-bold">Carte prépayée {MARQUE.nom}</h2>
           <p className="mt-2 text-muted-foreground">
             Rechargez une fois, imprimez toute la semaine sans repasser par Mobile Money.
           </p>

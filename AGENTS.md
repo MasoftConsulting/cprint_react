@@ -1,4 +1,9 @@
-# Campus Print — règles du projet
+# MASC Print — règles du projet
+
+MASC Print est le projet global ; Campus Print n'en est qu'une déclinaison (l'offre
+pour les universités). Le nom affiché vient de `src/lib/marque.ts` — jamais écrit en
+dur dans un composant. Les identifiants techniques (`campus-print`, `campus_print`,
+`CampusPrintAgent-…`) ne changent pas avec la marque.
 
 Port Next.js du site Laravel `campus-print-laravel`. Le design (couleurs, espacements,
 typographie) doit rester identique à l'original.

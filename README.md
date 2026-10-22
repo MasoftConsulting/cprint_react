@@ -1,4 +1,4 @@
-# Campus Print by MaSoft — version Next.js
+# MASC Print by MaSoft — version Next.js
 
 Portage du site Laravel `campus-print-laravel` vers Next.js 16 (App Router) avec
 Supabase comme base de données. Le design est repris à l'identique.

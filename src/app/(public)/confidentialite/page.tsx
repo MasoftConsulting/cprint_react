@@ -14,11 +14,12 @@ import {
 } from 'lucide-react'
 
 import { ButtonLink } from '@/components/ui/button-link'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Vos documents sont-ils en sécurité ?',
   description:
-    "Où passe votre document, qui peut le lire, combien de temps il existe. Les réponses exactes, y compris ce que Campus Print ne fait pas.",
+    `Où passe votre document, qui peut le lire, combien de temps il existe. Les réponses exactes, y compris ce que ${MARQUE.nom} ne fait pas.`,
 }
 
 /**
@@ -358,7 +359,7 @@ export default function ConfidentialitePage() {
         <div className="surface-card mt-10 p-6 sm:p-8">
           <h3 className="font-display text-lg font-bold">Une question, un doute</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Parlez-en à un responsable du point Campus Print, ou{' '}
+            Parlez-en à un responsable du point {MARQUE.nom}, ou{' '}
             <Link href="/contact" className="font-medium text-primary hover:underline">
               écrivez-nous
             </Link>

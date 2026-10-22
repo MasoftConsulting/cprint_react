@@ -2,11 +2,12 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 
 import { PrintFlow, PrintFlowFromQuery } from '@/features/impression/components/print-flow'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Imprimer un document',
   description:
-    'Envoyez vos documents depuis votre téléphone, payez en Mobile Money et récupérez vos impressions sur la borne Campus Print de votre campus.',
+    `Envoyez vos documents depuis votre téléphone, payez en ligne et récupérez vos impressions sur la borne ${MARQUE.nom} la plus proche.`,
 }
 
 export default function ImprimerPage() {

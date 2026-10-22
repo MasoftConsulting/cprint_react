@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, Loader2, Printer, Wallet, XCircle } from 'lucide-react'
 
 import { formatAmount, getPayment, isPrintApiConfigured, type Payment } from '../api'
+import { MARQUE } from '@/lib/marque'
 
 /**
  * Écran de retour après un paiement mobile, pour les pages vers lesquelles
@@ -152,13 +153,13 @@ export function RetourPaiement({
           {recharge ? (
             <p className="mt-3 text-muted-foreground">
               {montant} ont été crédités sur le portefeuille PrintPoint. Revenez sur
-              l&apos;onglet Campus Print resté ouvert : il reprend tout seul, avec le nouveau
+              l&apos;onglet {MARQUE.nom} resté ouvert : il reprend tout seul, avec le nouveau
               solde.
             </p>
           ) : (
             <p className="mt-3 text-muted-foreground">
               {montant} réglés. Votre code de retrait à 6 chiffres vous a été envoyé par
-              e-mail : présentez-le à la borne Campus Print, l&apos;impression démarre quand
+              e-mail : présentez-le à la borne {MARQUE.nom}, l&apos;impression démarre quand
               vous êtes devant la machine.
             </p>
           )}
@@ -210,7 +211,7 @@ export function RetourPaiement({
         <p className="mt-4 text-sm text-muted-foreground">
           {recharge
             ? 'Vous pouvez relancer la recharge depuis la page Recharger mon portefeuille.'
-            : 'Reprenez depuis l’onglet Campus Print resté ouvert pour relancer le paiement.'}
+            : `Reprenez depuis l’onglet ${MARQUE.nom} resté ouvert pour relancer le paiement.`}
         </p>
         <Reference valeur={paiement.reference} />
       </Cadre>
@@ -246,7 +247,7 @@ export function RetourPaiement({
     >
       <p className="mt-3 text-muted-foreground">
         {nature === 'TOPUP'
-          ? 'Le solde est crédité dès la confirmation du paiement. Revenez sur l’onglet Campus Print resté ouvert : il reprend tout seul, avec le nouveau solde.'
+          ? `Le solde est crédité dès la confirmation du paiement. Revenez sur l’onglet ${MARQUE.nom} resté ouvert : il reprend tout seul, avec le nouveau solde.`
           : 'Votre code de retrait vous est envoyé par e-mail dès la confirmation du paiement. L’impression démarre à la borne, quand vous y saisissez ce code.'}
       </p>
       <p className="mt-6 text-sm text-muted-foreground">

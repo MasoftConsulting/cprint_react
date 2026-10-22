@@ -17,6 +17,7 @@ import {
   type UploadResult,
 } from '../api'
 import { trierFichiers } from '../upload-rules'
+import { MARQUE } from '@/lib/marque'
 
 /**
  * Page ouverte sur le téléphone après scan du QR code affiché sur la borne.
@@ -101,7 +102,7 @@ export function UploadForm({
     return (
       <Notice tone="error" title="Service indisponible">
         Le service d&apos;impression n&apos;est pas configuré. Prévenez un responsable du point
-        Campus Print.
+        {MARQUE.nom}.
       </Notice>
     )
   }

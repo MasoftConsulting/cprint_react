@@ -3,11 +3,12 @@ import type { Metadata } from 'next'
 import { CtaBand } from '@/components/cta-band'
 import { PointsDirectory } from '@/features/print-points/components/points-directory'
 import { getPrintPointsWithMachines } from '@/features/print-points/queries'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
-  title: 'Points Campus Print — Campus partenaires au Togo',
+  title: `Points ${MARQUE.nom} — où imprimer`,
   description:
-    'Découvrez les bornes Campus Print installées sur les campus universitaires togolais : Lomé, Kara, Sokodé et Atakpamé.',
+    `Les points ${MARQUE.nom} et l'état de leur borne, en temps réel : vérifiez qu'elle répond avant de vous déplacer.`,
 }
 
 export default async function PointsPage() {

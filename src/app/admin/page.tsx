@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Printer } from 'lucide-react'
 
 import { LoginForm } from '@/features/auth/components/login-form'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Connexion Admin',
@@ -18,8 +19,8 @@ export default function AdminLoginPage() {
               <Printer className="h-6 w-6" aria-hidden />
             </span>
             <div>
-              <p className="font-display text-lg leading-tight font-bold">Campus Print</p>
-              <p className="text-xs font-medium text-muted-foreground">Espace Admin — by MaSoft</p>
+              <p className="font-display text-lg leading-tight font-bold">{MARQUE.nom}</p>
+              <p className="text-xs font-medium text-muted-foreground">Espace Admin — {MARQUE.signature}</p>
             </div>
           </div>
 

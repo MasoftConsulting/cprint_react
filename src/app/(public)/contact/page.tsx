@@ -3,11 +3,12 @@ import { Mail, MapPin, Phone } from 'lucide-react'
 
 import { ContactForm } from '@/features/contact/components/contact-form'
 import { getContactInfo } from '@/features/settings/queries'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Contact',
   description:
-    "Une question sur le service ou un projet de partenariat campus ? Écrivez-nous, l'équipe Campus Print vous répond sous 24 h.",
+    `Une question sur le service ou un projet de partenariat ? Écrivez-nous, l'équipe ${MARQUE.nom} vous répond sous 24 h.`,
 }
 
 export default async function ContactPage() {

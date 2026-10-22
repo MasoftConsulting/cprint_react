@@ -5,6 +5,7 @@ import { Clock, CreditCard, FileText, MapPin, Server } from 'lucide-react'
 import { requireUser } from '@/lib/dal'
 import { getActiveMachinesCount } from '@/features/machines/queries'
 import { getActivePrintPointsCount } from '@/features/print-points/queries'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Tableau de bord',
@@ -55,7 +56,7 @@ async function WelcomeCard() {
     <div className="surface-card bg-[image:var(--gradient-primary)] p-6 text-primary-foreground sm:p-8">
       <p className="font-display text-xl font-bold sm:text-2xl">Bienvenue, {user.name} 👋</p>
       <p className="mt-1 text-sm text-primary-foreground/80">
-        Voici l&apos;espace d&apos;administration de Campus Print. Les modules ci-dessous seront
+        Voici l&apos;espace d&apos;administration de {MARQUE.nom}. Les modules ci-dessous seront
         connectés à mesure que le back-office avance.
       </p>
     </div>

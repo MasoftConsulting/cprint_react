@@ -9,6 +9,7 @@ import { deletePrintPoint } from '@/features/print-points/actions'
 import { getPrintPointsWithMachines } from '@/features/print-points/queries'
 import { formatSiteAddress, statusLabel } from '@/features/print-points/schema'
 import { DeletePointButton } from '@/features/print-points/components/delete-point-button'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: "Sites d'impression",
@@ -89,7 +90,7 @@ export default function AdminPointsPage() {
     <>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Campus et lieux où Campus Print est installé.
+          Campus, bureaux et lieux où {MARQUE.nom} est installé.
         </p>
         <Link
           href="/admin/points/nouveau"

@@ -3,6 +3,7 @@ import { cacheLife } from 'next/cache'
 import { Mail, MapPin, Phone, Printer } from 'lucide-react'
 
 import { getContactInfo } from '@/features/settings/queries'
+import { MARQUE } from '@/lib/marque'
 
 /**
  * L'horloge est une donnée dynamique : sous Cache Components elle doit être lue
@@ -25,7 +26,7 @@ export async function SiteFooter() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[image:var(--gradient-primary)] text-primary-foreground">
               <Printer className="h-5 w-5" aria-hidden />
             </span>
-            <span className="font-display font-bold">Campus Print</span>
+            <span className="font-display font-bold">{MARQUE.nom}</span>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             L&apos;impression en libre-service sur votre campus. Un service MaSoft Consulting,
@@ -48,7 +49,7 @@ export async function SiteFooter() {
             </li>
             <li>
               <Link href="/points" className="hover:text-primary">
-                Points Campus Print
+                Points {MARQUE.nom}
               </Link>
             </li>
             <li>
@@ -105,7 +106,7 @@ export async function SiteFooter() {
       </div>
 
       <div className="border-t border-border/70 py-5 text-center text-xs text-muted-foreground">
-        © {year} Campus Print by MaSoft Consulting
+        © {year} {MARQUE.nom} by {MARQUE.editeur}
       </div>
     </footer>
   )

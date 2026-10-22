@@ -4,11 +4,12 @@ import { Printer, Wallet } from 'lucide-react'
 
 import { RechargeForm } from '@/features/impression/components/recharge-form'
 import { getPricing } from '@/features/settings/queries'
+import { MARQUE } from '@/lib/marque'
 
 export const metadata: Metadata = {
   title: 'Recharger mon portefeuille',
   description:
-    'Créditez votre portefeuille Campus Print en Mobile Money, puis imprimez à l’unité sans repasser par un paiement à chaque fois.',
+    `Créditez votre portefeuille ${MARQUE.nom}, puis imprimez à l’unité sans repasser par un paiement à chaque fois.`,
 }
 
 /**
