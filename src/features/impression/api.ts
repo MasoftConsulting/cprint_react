@@ -180,7 +180,7 @@ export type Payment = {
   reference: string
   /** Ce qui est payé : des pages, une recharge de portefeuille, une reliure. */
   kind?: 'PRINT' | 'TOPUP' | 'FINISHING'
-  provider: 'FEDAPAY' | 'SIMULATED' | 'CREDIT' | 'WALLET'
+  provider: 'FEDAPAY' | 'MOLLIE' | 'SIMULATED' | 'CREDIT' | 'WALLET'
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELED' | 'EXPIRED'
   amount: number
   currency: string

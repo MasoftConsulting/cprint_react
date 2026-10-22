@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Smartphone } from 'lucide-react'
 
-import { formatAmount, getPaymentMeans, type PaymentMeans } from '../api'
+import { getPaymentMeans, type PaymentMeans } from '../api'
+import { useMontants } from '@/features/devise/components/devise-client'
 
 /**
  * Choix du moyen de paiement, pour un montant donné.
@@ -43,6 +44,7 @@ export function ChoixDuMoyen({
   // deux dit si on est à jour, sans avoir à remettre l'état à zéro au début de
   // chaque effet (ce qui déclenche un rendu en cascade).
   const [charge, setCharge] = useState<{ pour: number; moyens: PaymentMeans } | null>(null)
+  const { affiche } = useMontants()
 
   useEffect(() => {
     if (!montant) return
@@ -88,7 +90,7 @@ export function ChoixDuMoyen({
     if (!seuil || montant >= seuil || !surSeuil) return null
     return (
       <p className="mt-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
-        {surSeuil(formatAmount(seuil, devise))}
+        {surSeuil(affiche(seuil, devise))}
       </p>
     )
   }

@@ -18,7 +18,11 @@ const NAV_LINKS = [
   { href: '/contact', label: 'Contact' },
 ]
 
-export function SiteHeader() {
+/**
+ * `selecteurDevise` vient du serveur : il lit le cookie et le pays du
+ * visiteur, ce qu'un composant client ne peut pas faire.
+ */
+export function SiteHeader({ selecteurDevise }: { selecteurDevise?: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const pathname = usePathname()
 
@@ -51,6 +55,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {selecteurDevise}
           <Link
             href={printEntryHref('/tarifs')}
             className="hidden h-10 items-center justify-center gap-2 rounded-xl bg-cta px-5 text-sm font-medium whitespace-nowrap text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98] sm:inline-flex"

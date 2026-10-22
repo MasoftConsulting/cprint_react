@@ -4,14 +4,19 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Copy, FileText, Palette } from 'lucide-react'
 
+import { useMontants } from '@/features/devise/components/devise-client'
+import type { Devise } from '@/features/devise/devise'
 import { printEntryHref } from '@/features/impression/api'
 import { cn } from '@/lib/cn'
 
 type ColorMode = 'nb' | 'couleur'
 
 type Props = {
+  /** Prix par page, en F CFA : la devise des tarifs administrés. */
   priceNb: number
   priceCouleur: number
+  /** Devise déjà employée par le serveur pour rendre ce composant. */
+  devise?: Devise
 }
 
 /**
@@ -77,7 +82,8 @@ function Stepper({
   )
 }
 
-export function PriceCalculator({ priceNb, priceCouleur }: Props) {
+export function PriceCalculator({ priceNb, priceCouleur, devise }: Props) {
+  const { affiche } = useMontants(devise)
   const [pagesRaw, setPagesRaw] = useState('10')
   const [copiesRaw, setCopiesRaw] = useState('1')
   const [color, setColor] = useState<ColorMode>('nb')
@@ -86,6 +92,11 @@ export function PriceCalculator({ priceNb, priceCouleur }: Props) {
   const copies = toNumber(copiesRaw)
   const unitPrice = color === 'nb' ? priceNb : priceCouleur
   const total = pages * copies * unitPrice
+  // Le nombre en grand, l'unité en petit : « 1,53 » puis « € », « 1 000 » puis
+  // « F CFA ». Le séparateur des milliers est une espace insécable : seule
+  // l'espace ordinaire sépare le nombre de son unité.
+  const [nombreTotal, ...unite] = affiche(total, 'F CFA').split(' ')
+  const uniteTotal = unite.join(' ')
 
   return (
     <div className="surface-card p-5 sm:p-7">
@@ -127,7 +138,9 @@ export function PriceCalculator({ priceNb, priceCouleur }: Props) {
             )}
           >
             Noir &amp; Blanc
-            <span className="block text-xs font-normal">{priceNb} FCFA/page</span>
+            <span className="block text-xs font-normal">
+              {affiche(priceNb, 'F CFA', { unitaire: true })}/page
+            </span>
           </button>
           <button
             type="button"
@@ -141,7 +154,9 @@ export function PriceCalculator({ priceNb, priceCouleur }: Props) {
             )}
           >
             Couleur
-            <span className="block text-xs font-normal">{priceCouleur} FCFA/page</span>
+            <span className="block text-xs font-normal">
+              {affiche(priceCouleur, 'F CFA', { unitaire: true })}/page
+            </span>
           </button>
         </div>
       </div>
@@ -150,7 +165,7 @@ export function PriceCalculator({ priceNb, priceCouleur }: Props) {
         <div>
           <p className="text-sm opacity-80">Total estimé</p>
           <p className="font-display text-4xl font-extrabold">
-            {total} <span className="text-xl">FCFA</span>
+            {nombreTotal} <span className="text-xl">{uniteTotal}</span>
           </p>
         </div>
         <p className="text-sm opacity-80">

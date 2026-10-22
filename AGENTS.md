@@ -37,6 +37,21 @@ Lis-la avant d'utiliser une API dont tu n'es pas certain — ne code pas de mém
 - Aucune ligne brute de la base ne traverse la frontière serveur/client : projeter
   explicitement les champs nécessaires.
 
+## Devise d'affichage
+
+- **La comptabilité est en F CFA** : prix (Supabase), soldes, paiements. Rien
+  n'est stocké en euros. Le back-office reste en F CFA.
+- Le site public **affiche** dans la devise du visiteur : euro par défaut, F CFA
+  pour la zone UEMOA (pays de connexion, `x-vercel-ip-country`), ou son choix
+  (sélecteur de l'en-tête, cookie `devise`). Conversion **exacte** à la parité
+  fixe 655,957 — jamais un cours de marché.
+- Tout montant public passe par `src/features/devise/` : `<Prix>` (serveur, sous
+  `<Suspense>`), `useMontants()` (navigateur). Jamais « FCFA » ni « € » en dur.
+- Là où de l'argent part, `debite()` annonce **la devise du débit** : F CFA pour
+  le Mobile Money, euro pour la carte et PayPal — puis l'équivalent.
+- `npm run verify` vérifie que l'euro affiché est exactement ce que la centrale
+  débite (centime supérieur). La CI le lance.
+
 ## Service d'impression (API Python)
 
 Le parcours `/imprimer` s'appuie sur une **API FastAPI séparée**, dans le dépôt

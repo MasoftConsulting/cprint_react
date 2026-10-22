@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, Loader2, Printer, Wallet, XCircle } from 'lucide-react'
 
-import { formatAmount, getPayment, isPrintApiConfigured, type Payment } from '../api'
+import { getPayment, isPrintApiConfigured, type Payment } from '../api'
+import { deviseDuPaiement, useMontants } from '@/features/devise/components/devise-client'
 import { MARQUE } from '@/lib/marque'
 
 /**
@@ -78,6 +79,7 @@ export function RetourPaiement({
   reference,
   abandonSignale = false,
 }: RetourPaiementProps) {
+  const { debite } = useMontants()
   const [etat, setEtat] = useState<Etat>(
     reference && isPrintApiConfigured
       ? { phase: 'lecture', paiement: null }
@@ -140,7 +142,7 @@ export function RetourPaiement({
 
   if (etat.phase === 'lu') {
     const { paiement } = etat
-    const montant = formatAmount(paiement.amount, paiement.currency)
+    const montant = debite(paiement.amount, paiement.currency, deviseDuPaiement(paiement.provider))
     const recharge = (paiement.kind ?? nature) === 'TOPUP'
 
     if (paiement.status === 'APPROVED') {

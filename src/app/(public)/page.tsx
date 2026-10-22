@@ -8,6 +8,8 @@ import { printEntryHref } from '@/features/impression/api'
 import { getActivePrintPointsCount } from '@/features/print-points/queries'
 import { getPricing, getSettings } from '@/features/settings/queries'
 import { MARQUE } from '@/lib/marque'
+import { Suspense } from 'react'
+import { AvecDevise, Prix } from '@/features/devise/components/devise-serveur'
 
 const STEPS = [
   {
@@ -138,8 +140,11 @@ export default async function HomePage() {
             Vous payez uniquement ce que vous imprimez
           </h2>
           <p className="mt-3 text-muted-foreground">
-            {pricing.nb} FCFA la page en noir &amp; blanc, {pricing.couleur} FCFA en couleur. Aucun
-            abonnement, aucun frais caché. Simulez votre impression avant de vous déplacer.
+            <Suspense fallback={`${pricing.nb} F CFA la page en noir & blanc, ${pricing.couleur} F CFA en couleur.`}>
+              <Prix montant={pricing.nb} unitaire /> la page en noir &amp; blanc,{' '}
+              <Prix montant={pricing.couleur} unitaire /> en couleur.
+            </Suspense>{' '}
+            Aucun abonnement, aucun frais caché. Simulez votre impression avant de vous déplacer.
           </p>
           <ul className="mt-6 space-y-3 text-sm">
             {BENEFITS.map(({ Icon, text }) => (
@@ -153,7 +158,13 @@ export default async function HomePage() {
           </ul>
         </div>
 
-        <PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} />
+        <Suspense fallback={<PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} />}>
+          <AvecDevise>
+            {(devise) => (
+              <PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} devise={devise} />
+            )}
+          </AvecDevise>
+        </Suspense>
       </section>
 
       <CtaBand />

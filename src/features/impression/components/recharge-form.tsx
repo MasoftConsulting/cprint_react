@@ -5,9 +5,9 @@ import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import { ChoixDuMoyen } from './choix-du-moyen'
+import { deviseDuMoyen, useMontants } from '@/features/devise/components/devise-client'
 import {
   DEFAULT_TOPUP_CONFIG,
-  formatAmount,
   getTopUpConfig,
   isPrintApiConfigured,
   PrintApiError,
@@ -38,6 +38,7 @@ export function RechargeForm() {
   const [config, setConfig] = useState(DEFAULT_TOPUP_CONFIG)
   const [choisi, setChoisi] = useState<number | null>(null)
   const [moyen, setMoyen] = useState('')
+  const { affiche, debite } = useMontants()
   const [busy, setBusy] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [paiement, setPaiement] = useState<Payment | null>(null)
@@ -86,7 +87,7 @@ export function RechargeForm() {
         <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden />
         <h2 className="mt-4 font-display text-xl font-extrabold">Recharge enregistrée</h2>
         <p className="mt-2 text-muted-foreground">
-          {formatAmount(paiement.amount, paiement.currency)} crédités sur{' '}
+          {affiche(paiement.amount, paiement.currency)} crédités sur{' '}
           <strong className="text-foreground">{email.trim()}</strong>.
         </p>
         <p className="mt-4 text-sm text-muted-foreground">
@@ -148,7 +149,7 @@ export function RechargeForm() {
                   : 'border-border hover:bg-accent',
               )}
             >
-              {formatAmount(montant, config.currency)}
+              {affiche(montant, config.currency)}
             </button>
           ))}
         </div>
@@ -200,7 +201,7 @@ export function RechargeForm() {
           <>
             <Wallet className="h-5 w-5" aria-hidden />
             {choisi
-              ? `Recharger ${formatAmount(choisi, config.currency)}`
+              ? `Recharger ${debite(choisi, config.currency, deviseDuMoyen(moyen))}`
               : 'Choisissez un montant'}
           </>
         )}

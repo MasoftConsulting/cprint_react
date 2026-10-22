@@ -25,7 +25,6 @@ import { ChoixDuMoyen } from './choix-du-moyen'
 import {
   createPayment,
   createSession,
-  formatAmount,
   formatSize,
   getPayment,
   getQuote,
@@ -51,6 +50,11 @@ import {
   type WalletQuote,
 } from '../api'
 import { MARQUE } from '@/lib/marque'
+import {
+  deviseDuMoyen,
+  deviseDuPaiement,
+  useMontants,
+} from '@/features/devise/components/devise-client'
 
 /**
  * Parcours d'impression en ligne — tout sauf l'impression elle-même.
@@ -807,6 +811,7 @@ function DocumentsStep({
   onReady: () => void
   onBack: () => void
 }) {
+  const { affiche, debite } = useMontants()
   const nothingSelected = selected.length === 0
 
   return (
@@ -939,7 +944,7 @@ function DocumentsStep({
             </span>
             {quote.payment_required && (
               <span className="text-2xl font-extrabold text-primary">
-                {formatAmount(quote.amount, quote.currency)}
+                {affiche(quote.amount, quote.currency)}
               </span>
             )}
           </div>
@@ -1001,11 +1006,11 @@ function DocumentsStep({
                     Réglé par votre portefeuille — rien à payer maintenant.
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    {formatAmount(quote.portefeuille.montant, quote.portefeuille.devise)} déduits
-                    de vos {formatAmount(quote.portefeuille.solde, quote.portefeuille.devise)} — il
+                    {affiche(quote.portefeuille.montant, quote.portefeuille.devise)} déduits
+                    de vos {affiche(quote.portefeuille.solde, quote.portefeuille.devise)} — il
                     vous restera{' '}
                     <strong>
-                      {formatAmount(quote.portefeuille.restant, quote.portefeuille.devise)}
+                      {affiche(quote.portefeuille.restant, quote.portefeuille.devise)}
                     </strong>
                     .
                   </p>
@@ -1015,9 +1020,9 @@ function DocumentsStep({
                   <p className="font-medium text-amber-700">Solde insuffisant.</p>
                   <p className="mt-1 text-muted-foreground">
                     Il vous reste{' '}
-                    {formatAmount(quote.portefeuille.solde, quote.portefeuille.devise)}, il manque{' '}
+                    {affiche(quote.portefeuille.solde, quote.portefeuille.devise)}, il manque{' '}
                     <strong>
-                      {formatAmount(quote.portefeuille.manquant, quote.portefeuille.devise)}
+                      {affiche(quote.portefeuille.manquant, quote.portefeuille.devise)}
                     </strong>
                     . Rechargez, ou payez cette impression normalement — votre solde n&apos;est
                     pas entamé.
@@ -1087,7 +1092,7 @@ function DocumentsStep({
             />
             <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
               <CreditCard className="h-5 w-5" aria-hidden />
-              Payer {formatAmount(quote.amount, quote.currency)}
+              Payer {debite(quote.amount, quote.currency, deviseDuMoyen(moyen))}
             </PrimaryButton>
           </>
         ) : (
@@ -1133,6 +1138,7 @@ function TopUpOffer({
   busy: boolean
   onTopUp: (amount: number) => void
 }) {
+  const { affiche } = useMontants()
   if (amounts.length === 0) return null
 
   const manquant = wallet?.manquant ?? 0
@@ -1164,7 +1170,7 @@ function TopUpOffer({
                 : 'border-border hover:bg-accent',
             )}
           >
-            {formatAmount(amount, currency)}
+            {affiche(amount, currency)}
             {amount === suffisant && (
               <span className="ml-1 font-normal text-muted-foreground">· suffit</span>
             )}
@@ -1183,11 +1189,12 @@ function TopUpOffer({
  * l'adresse de retour pour se créditer gratuitement.
  */
 function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => void }) {
+  const { debite } = useMontants()
   return (
     <Card>
       <StepHeader
         icon={<Wallet className="h-5 w-5" aria-hidden />}
-        title={`Recharger ${formatAmount(payment.amount, payment.currency)}`}
+        title={`Recharger ${debite(payment.amount, payment.currency, deviseDuPaiement(payment.provider))}`}
         subtitle="Réglez avec Flooz, T-Money/Mixx ou votre carte. Le solde sera crédité dès la confirmation, et vos impressions en seront ensuite débitées."
       />
 
@@ -1226,11 +1233,12 @@ function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => vo
 }
 
 function PayingStep({ payment, onCancel }: { payment: Payment; onCancel: () => void }) {
+  const { debite } = useMontants()
   return (
     <Card>
       <StepHeader
         icon={<CreditCard className="h-5 w-5" aria-hidden />}
-        title={`Payer ${formatAmount(payment.amount, payment.currency)}`}
+        title={`Payer ${debite(payment.amount, payment.currency, deviseDuPaiement(payment.provider))}`}
         subtitle="Réglez avec Flooz, T-Money/Mixx ou votre carte. Vous recevrez ensuite la marche à suivre pour imprimer à la borne."
       />
 
@@ -1281,10 +1289,10 @@ function titreDe(ready: Ready): string {
   return 'Paiement confirmé'
 }
 
-function detailDe(ready: Ready): string {
+function detailDe(ready: Ready, affiche: (montant: number, devise: string) => string): string {
   if (!ready.paid) return "Rien ne sera imprimé avant votre passage à la borne."
   const pages = `${ready.pages} page${ready.pages > 1 ? 's' : ''}`
-  const montant = formatAmount(ready.paid.amount, ready.paid.currency)
+  const montant = affiche(ready.paid.amount, ready.paid.currency)
   if (ready.provider === 'CREDIT') return `${pages} déduites de votre crédit.`
   if (ready.provider === 'WALLET') return `${montant} déduits de votre solde — ${pages}.`
   return `${montant} réglés — ${pages}.`
@@ -1299,12 +1307,13 @@ function ReadyStep({
   ready: Ready
   onRestart: () => void
 }) {
+  const { affiche } = useMontants()
   return (
     <Card>
       <div className="text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden />
         <h2 className="mt-4 text-2xl font-extrabold">{titreDe(ready)}</h2>
-        <p className="mt-2 text-muted-foreground">{detailDe(ready)}</p>
+        <p className="mt-2 text-muted-foreground">{detailDe(ready, affiche)}</p>
         {ready.simulated && (
           <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-semibold text-muted-foreground">
             Paiement de démonstration — aucun montant débité

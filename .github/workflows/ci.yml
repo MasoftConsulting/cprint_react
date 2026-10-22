@@ -23,3 +23,6 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      # Regles de la devise d'affichage : l'euro affiche doit etre exactement
+      # ce que la centrale debite par carte ou PayPal.
+      - run: npm run verify

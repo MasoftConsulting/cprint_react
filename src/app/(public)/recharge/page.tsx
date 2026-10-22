@@ -5,6 +5,8 @@ import { Printer, Wallet } from 'lucide-react'
 import { RechargeForm } from '@/features/impression/components/recharge-form'
 import { getPricing } from '@/features/settings/queries'
 import { MARQUE } from '@/lib/marque'
+import { Suspense } from 'react'
+import { Prix } from '@/features/devise/components/devise-serveur'
 
 export const metadata: Metadata = {
   title: 'Recharger mon portefeuille',
@@ -64,8 +66,15 @@ export default async function RechargePage() {
           <p className="mt-2 text-sm text-muted-foreground">
             Au moment d&apos;imprimer, saisissez la même adresse : le montant est déduit de
             votre solde, et votre code de retrait vous est envoyé par e-mail. Une page noir
-            &amp; blanc coûte {pricing.nb} F CFA, une page couleur {pricing.couleur} F CFA, et
-            une page A3 compte double.
+            &amp; blanc coûte{' '}
+            <Suspense fallback={`${pricing.nb} F CFA`}>
+              <Prix montant={pricing.nb} unitaire />
+            </Suspense>
+            , une page couleur{' '}
+            <Suspense fallback={`${pricing.couleur} F CFA`}>
+              <Prix montant={pricing.couleur} unitaire />
+            </Suspense>
+            , et une page A3 compte double.
           </p>
           <Link
             href="/imprimer"
