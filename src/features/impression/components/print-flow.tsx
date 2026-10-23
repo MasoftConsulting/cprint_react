@@ -110,10 +110,27 @@ type Ready = {
  */
 export function PrintFlowFromQuery() {
   const params = useSearchParams()
-  return <PrintFlow resumeToken={params.get('session')} />
+  const zone = params.get('zone')
+  return (
+    <PrintFlow
+      resumeToken={params.get('session')}
+      // Ouvert depuis le QR code d'une borne : le code saisi là-bas, et la
+      // zone du point où le client se trouve — c'est elle qui fixe le prix.
+      codeInitial={params.get('code')}
+      zoneInitiale={zone === 'EUR' || zone === 'XOF' ? zone : null}
+    />
+  )
 }
 
-export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null }) {
+export function PrintFlow({
+  resumeToken = null,
+  codeInitial = null,
+  zoneInitiale = null,
+}: {
+  resumeToken?: string | null
+  codeInitial?: string | null
+  zoneInitiale?: ZoneTarifaire | null
+}) {
   const [step, setStep] = useState<Step>(resumeToken ? 'resuming' : 'start')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -123,7 +140,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   const [session, setSession] = useState<PrintSession | null>(null)
 
   // Documents, quel que soit le chemin emprunté
-  const [code, setCode] = useState('')
+  // Un code transmis par le QR d'une borne n'est retenu que s'il en a la forme.
+  const codeDeLaBorne = codeInitial && /^\d{6}$/.test(codeInitial) ? codeInitial : null
+  const [code, setCode] = useState(codeDeLaBorne ?? '')
   const [documents, setDocuments] = useState<PrintDocument[]>([])
   const [selected, setSelected] = useState<number[]>([])
 
@@ -146,7 +165,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
    * paie pour un étudiant de Lomé choisit l'autre zone.
    */
   const [zones, setZones] = useState<ZoneImpression[]>([])
-  const [zoneChoisie, setZoneChoisie] = useState<ZoneTarifaire | null>(null)
+  const [zoneChoisie, setZoneChoisie] = useState<ZoneTarifaire | null>(zoneInitiale)
   const deviseVisiteur = useDevise()
   const zone: ZoneTarifaire | undefined =
     zoneChoisie ??
@@ -329,19 +348,48 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     }
   }, [step, session, showDocuments])
 
-  // --- Saisie manuelle du code ----------------------------------------------
-  async function handleCode(event: React.FormEvent) {
-    event.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      const verified = await verifyCode(code.trim())
+  const afficherVerifie = useCallback(
+    (verified: Awaited<ReturnType<typeof verifyCode>>) => {
       if (verified.payment?.status === 'APPROVED') {
         // Déjà payé : il ne reste qu'à passer à la borne.
         showReady(paidOf(verified.payment), verified.payment.pages)
       } else {
         showDocuments(verified.attachments)
       }
+    },
+    [showReady, showDocuments],
+  )
+
+  // --- Code venu du QR code d'une borne (`?code=…`) -------------------------
+  // Le client est devant une borne qui lui a refusé un code non payé : on
+  // l'emmène directement à ses documents, sans lui faire retaper le code.
+  useEffect(() => {
+    if (!codeDeLaBorne) return
+    // Le code quitte l'adresse : il ne reste ni dans l'historique, ni dans un
+    // lien copié depuis la barre d'adresse.
+    window.history.replaceState(null, '', '/imprimer')
+    let vivant = true
+    verifyCode(codeDeLaBorne)
+      .then((verified) => {
+        if (vivant) afficherVerifie(verified)
+      })
+      .catch((cause) => {
+        if (vivant) setError(messageOf(cause, 'Code invalide ou expiré.'))
+      })
+    return () => {
+      vivant = false
+    }
+    // Une seule fois, à l'ouverture : la page a été ouverte pour ce code-là.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // --- Saisie manuelle du code ----------------------------------------------
+  async function handleCode(event: React.FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      afficherVerifie(await verifyCode(code.trim()))
     } catch (cause) {
       setError(messageOf(cause, 'Code invalide ou expiré.'))
     } finally {
