@@ -62,9 +62,11 @@ Lis-la avant d'utiliser une API dont tu n'es pas certain — ne code pas de mém
 - **La zone d'un paiement est celle du lieu d'impression**, choisie par le client
   dans le parcours (défaut : la zone de sa devise). Jamais la devise affichée,
   jamais le moyen de paiement.
-- **Un code ne s'imprime que dans la zone où il a été payé** : la centrale le
-  refuse à la borne de l'autre zone. La zone d'un point vient du pays de son
-  site (`print_points.country`), relié par `agent_name`.
+- **Un code s'imprime partout.** Payé au tarif le plus cher, il sort dans
+  l'autre zone sans remboursement ; payé au moins cher, la borne d'un point plus
+  cher fait régler la différence (paiement `AJUSTEMENT`, solde ou QR code)
+  avant que la centrale ne serve le moindre fichier. La zone d'un point vient
+  du pays de son site (`print_points.country`), relié par `agent_name`.
 - **Supabase est la source unique** des tarifs et des montants de recharge
   (`recharge_amounts`) ; les variables d'environnement de la centrale ne sont
   plus que des replis.

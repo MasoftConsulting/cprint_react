@@ -144,6 +144,9 @@ export function RetourPaiement({
     const { paiement } = etat
     const montant = debite(paiement.amount, paiement.currency, deviseDuPaiement(paiement.provider))
     const recharge = (paiement.kind ?? nature) === 'TOPUP'
+    // Réglé depuis le QR code de la borne : le client est devant la machine,
+    // son code de retrait, il l'a déjà saisi.
+    const supplement = paiement.kind === 'FINISHING' || paiement.kind === 'AJUSTEMENT'
 
     if (paiement.status === 'APPROVED') {
       return (
@@ -157,6 +160,11 @@ export function RetourPaiement({
               {montant} ont été crédités sur le portefeuille PrintPoint. Revenez sur
               l&apos;onglet {MARQUE.nom} resté ouvert : il reprend tout seul, avec le nouveau
               solde.
+            </p>
+          ) : supplement ? (
+            <p className="mt-3 text-muted-foreground">
+              {montant} réglés. Revenez à la borne et appuyez sur « J&apos;ai payé » :
+              l&apos;impression vous y attend.
             </p>
           ) : (
             <p className="mt-3 text-muted-foreground">
@@ -208,12 +216,16 @@ export function RetourPaiement({
               : 'Votre opérateur a refusé ce paiement.'}{' '}
           {recharge
             ? 'Aucun solde n’a été crédité, et rien ne vous a été débité.'
-            : 'Vos documents n’ont pas été réglés, et rien ne vous a été débité.'}
+            : supplement
+              ? 'Ce supplément n’a pas été réglé, et rien ne vous a été débité.'
+              : 'Vos documents n’ont pas été réglés, et rien ne vous a été débité.'}
         </p>
         <p className="mt-4 text-sm text-muted-foreground">
           {recharge
             ? 'Vous pouvez relancer la recharge depuis la page Recharger mon portefeuille.'
-            : `Reprenez depuis l’onglet ${MARQUE.nom} resté ouvert pour relancer le paiement.`}
+            : supplement
+              ? 'Votre code reste valable : relancez le paiement depuis la borne.'
+              : `Reprenez depuis l’onglet ${MARQUE.nom} resté ouvert pour relancer le paiement.`}
         </p>
         <Reference valeur={paiement.reference} />
       </Cadre>

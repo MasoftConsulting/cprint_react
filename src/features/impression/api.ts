@@ -119,8 +119,9 @@ export type PaperSize = 'A4' | 'A3'
 /**
  * Zone tarifaire du LIEU D'IMPRESSION : « XOF » (Togo…) ou « EUR » (France…).
  *
- * C'est elle qui fixe le prix, pas la devise affichée ni le moyen de paiement,
- * et le code ne s'imprime que dans un point de cette zone.
+ * C'est elle qui fixe le prix, pas la devise affichée ni le moyen de paiement.
+ * Le code s'imprime partout ; dans une zone plus chère, la borne demande la
+ * différence (ajustement tarifaire).
  */
 export type ZoneTarifaire = 'XOF' | 'EUR'
 
@@ -213,8 +214,11 @@ export type Quote = {
 
 export type Payment = {
   reference: string
-  /** Ce qui est payé : des pages, une recharge de portefeuille, une reliure. */
-  kind?: 'PRINT' | 'TOPUP' | 'FINISHING'
+  /**
+   * Ce qui est payé : des pages, une recharge de portefeuille, ou un
+   * supplément réglé devant la machine (reliure, ajustement tarifaire).
+   */
+  kind?: 'PRINT' | 'TOPUP' | 'FINISHING' | 'AJUSTEMENT'
   provider: 'FEDAPAY' | 'MOLLIE' | 'SIMULATED' | 'CREDIT' | 'WALLET'
   status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELED' | 'EXPIRED'
   amount: number

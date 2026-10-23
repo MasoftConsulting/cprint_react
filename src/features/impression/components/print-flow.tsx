@@ -137,8 +137,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   const [preview, setPreview] = useState<number | null>(null)
 
   /**
-   * Lieu d'impression. C'est lui qui fixe le prix — pas la devise affichée —
-   * et le code ne s'imprimera que dans un point de cette zone.
+   * Lieu d'impression. C'est lui qui fixe le prix — pas la devise affichée.
+   * Le code s'imprime partout ; dans une zone plus chère, la borne demande la
+   * différence (ajustement tarifaire).
    *
    * Par défaut, la zone de la devise du visiteur : un visiteur de Lomé
    * imprime au Togo, un visiteur de Paris en France. Le parent en France qui
@@ -918,8 +919,8 @@ function DocumentsStep({
             }))}
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Le prix est celui du lieu d&apos;impression, et votre code ne s&apos;imprimera que
-            dans un point de cette zone.
+            Le prix est celui du lieu d&apos;impression. Votre code s&apos;imprime partout ;
+            dans un point où la page coûte plus cher, la borne vous demandera la différence.
           </p>
         </div>
       )}

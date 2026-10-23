@@ -37,7 +37,9 @@ export default function AdminPricingPage() {
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
         La zone est celle du <strong>point où l&apos;on imprime</strong>, d&apos;après le pays du
-        site : un code payé dans une zone ne s&apos;imprime que dans les points de cette zone.
+        site. Un code s&apos;imprime partout : payé dans la zone la plus chère, il sort ailleurs
+        sans remboursement ; payé dans la moins chère, la borne d&apos;un point plus cher fait
+        régler la différence (ajustement tarifaire) avant d&apos;imprimer.
       </p>
 
       <div className="mt-6">
