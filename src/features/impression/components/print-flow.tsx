@@ -853,6 +853,18 @@ function DocumentsStep({
   const { affiche, debite } = useMontants()
   const nothingSelected = selected.length === 0
 
+  // Minimum du prestataire, gardé AVEC le montant pour lequel il vaut : un
+  // changement d'options relance la question, sans remise à zéro en cascade.
+  const [minimum, setMinimum] = useState<{ pour: number; minimum: number | null } | null>(null)
+  const onMinimum = useCallback(
+    (pour: number, valeur: number | null) => setMinimum({ pour, minimum: valeur }),
+    [],
+  )
+  // Trop petit pour être payé seul (2 pages à 10 F CFA, sous les 100 F CFA de
+  // FedaPay) : on propose de recharger au lieu d'un « Payer » voué au refus.
+  const sousMinimum =
+    quote && minimum?.pour === quote.amount ? minimum.minimum : null
+
   return (
     <Card>
       <StepHeader
@@ -1111,6 +1123,13 @@ function DocumentsStep({
           currency={quote.currency}
           busy={busy}
           onTopUp={onTopUp}
+          // Sous le minimum, la recharge EST le paiement : elle doit couvrir
+          // l'impression et atteindre le minimum du prestataire.
+          besoin={
+            sousMinimum !== null
+              ? Math.max(sousMinimum, quote.portefeuille?.manquant ?? quote.amount)
+              : undefined
+          }
         />
       )}
 
@@ -1142,6 +1161,7 @@ function DocumentsStep({
               valeur={moyen}
               devise={quote.currency}
               onChange={onMoyen}
+              onMinimum={onMinimum}
               surSeuil={(seuil) => (
                 <>
                   Pour payer par <strong className="text-foreground">carte ou PayPal</strong>,
@@ -1151,10 +1171,20 @@ function DocumentsStep({
                 </>
               )}
             />
-            <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
-              <CreditCard className="h-5 w-5" aria-hidden />
-              Payer {debite(quote.amount, quote.currency, deviseDuMoyen(moyen))}
-            </PrimaryButton>
+            {sousMinimum !== null ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <strong>{affiche(quote.amount, quote.currency)}</strong>, c&apos;est moins que le
+                plus petit paiement mobile accepté ({affiche(sousMinimum, quote.currency)}).{' '}
+                {onTopUp
+                  ? 'Rechargez votre portefeuille ci-dessus : cette impression en sera déduite, et le reste servira aux suivantes.'
+                  : 'Ajoutez des pages ou des exemplaires, ou repartez de l’envoi par e-mail pour recharger un portefeuille.'}
+              </p>
+            ) : (
+              <PrimaryButton onClick={onPay} disabled={busy || nothingSelected} busy={busy}>
+                <CreditCard className="h-5 w-5" aria-hidden />
+                Payer {debite(quote.amount, quote.currency, deviseDuMoyen(moyen))}
+              </PrimaryButton>
+            )}
           </>
         ) : (
           <PrimaryButton onClick={onReady} disabled={busy || nothingSelected} busy={busy}>
@@ -1192,7 +1222,14 @@ function TopUpOffer({
   currency,
   busy,
   onTopUp,
+  besoin,
 }: {
+  /**
+   * Ce que la recharge doit au moins créditer, en F CFA, quand elle est le
+   * seul moyen de payer (montant sous le minimum du prestataire). Le palier
+   * qui y suffit est mis en avant, comme pour un solde court.
+   */
+  besoin?: number
   /** Paliers F CFA. */
   amounts: number[]
   /** Paliers de la zone euro, en euros : proposés aux visiteurs qui lisent l'euro. */
@@ -1209,19 +1246,30 @@ function TopUpOffer({
 
   // Le manque est en F CFA (le portefeuille l'est) : on compare ce que chaque
   // palier crédite réellement, en F CFA, quelle que soit sa devise.
-  const manquant = wallet?.manquant ?? 0
+  const manquant = Math.max(wallet?.manquant ?? 0, besoin ?? 0)
   const suffisant = manquant > 0 ? paliers.find((p) => p.xof >= manquant) : undefined
 
   return (
-    <div className="mt-4 rounded-xl border border-dashed border-border px-5 py-4">
+    <div
+      className={cn(
+        'mt-4 rounded-xl border border-dashed px-5 py-4',
+        besoin ? 'border-primary' : 'border-border',
+      )}
+    >
       <p className="flex items-center gap-2 text-sm font-medium">
         <Wallet className="h-4 w-4 text-primary" aria-hidden />
-        {wallet ? 'Recharger mon portefeuille' : 'Payer d’avance avec un portefeuille PrintPoint'}
+        {besoin
+          ? 'Rechargez pour payer cette impression'
+          : wallet
+            ? 'Recharger mon portefeuille'
+            : 'Payer d’avance avec un portefeuille PrintPoint'}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {wallet
-          ? 'Vos prochaines impressions seront débitées de ce solde, sans repasser par un paiement mobile.'
-          : 'Rechargez une fois, puis imprimez à l’unité sans repasser par un paiement mobile à chaque fois.'}
+        {besoin
+          ? 'Cette impression sera déduite du solde, et le reste servira aux suivantes, sans repasser par un paiement mobile.'
+          : wallet
+            ? 'Vos prochaines impressions seront débitées de ce solde, sans repasser par un paiement mobile.'
+            : 'Rechargez une fois, puis imprimez à l’unité sans repasser par un paiement mobile à chaque fois.'}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">

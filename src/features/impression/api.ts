@@ -452,6 +452,13 @@ export type PaymentMeans = {
    * choix à 2 000 F CFA et aucun à 1 000 laisse croire à une panne.
    */
   autres_moyens_des: number | null
+  /**
+   * Le plus petit montant qu'un prestataire encaisse (100 F CFA chez
+   * FedaPay), `null` sans prestataire. Sous ce montant, la liste est vide :
+   * l'écran propose de recharger le portefeuille au lieu d'un « Payer » voué
+   * au refus.
+   */
+  minimum_paiement: number | null
 }
 
 export async function getPaymentMeans(montant: number): Promise<PaymentMeans> {
@@ -460,12 +467,23 @@ export async function getPaymentMeans(montant: number): Promise<PaymentMeans> {
       `/payments/moyens?montant=${encodeURIComponent(montant)}`,
       { cache: 'no-store' },
     )
-    return { moyens: reponse.moyens ?? [], autres_moyens_des: reponse.autres_moyens_des ?? null }
+    return {
+      moyens: reponse.moyens ?? [],
+      autres_moyens_des: reponse.autres_moyens_des ?? null,
+      // Absent d'une centrale d'avant : on ne bloque rien, comme avant.
+      minimum_paiement: reponse.minimum_paiement ?? null,
+    }
   } catch {
     // Centrale injoignable : on ne bloque pas le parcours. Sans choix affiché,
     // le serveur retombe sur son prestataire par défaut, comme avant.
-    return { moyens: [], autres_moyens_des: null }
+    return { moyens: [], autres_moyens_des: null, minimum_paiement: null }
   }
+}
+
+/** Le montant est trop petit pour tout prestataire : renvoie le minimum, sinon `null`. */
+export function sousLeMinimum(montant: number, moyens: PaymentMeans): number | null {
+  const minimum = moyens.minimum_paiement
+  return moyens.moyens.length === 0 && minimum !== null && montant < minimum ? minimum : null
 }
 
 export function getPayment(reference: string) {

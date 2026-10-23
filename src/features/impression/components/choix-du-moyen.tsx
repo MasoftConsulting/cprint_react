@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Smartphone } from 'lucide-react'
 
-import { getPaymentMeans, type PaymentMeans } from '../api'
+import { getPaymentMeans, sousLeMinimum, type PaymentMeans } from '../api'
 import { useMontants } from '@/features/devise/components/devise-client'
 
 /**
@@ -27,6 +27,7 @@ export function ChoixDuMoyen({
   devise = 'F CFA',
   surSeuil,
   onChange,
+  onMinimum,
 }: {
   montant: number
   valeur: string
@@ -39,6 +40,12 @@ export function ChoixDuMoyen({
    */
   surSeuil?: (seuil: string) => React.ReactNode
   onChange: (code: string) => void
+  /**
+   * Prévenu une fois la liste reçue : le minimum quand aucun prestataire ne
+   * peut encaisser ce montant (2 pages à 10 F CFA, sous les 100 F CFA de
+   * FedaPay), sinon `null`. Le parent retire alors son bouton « Payer ».
+   */
+  onMinimum?: (montant: number, minimum: number | null) => void
 }) {
   // La liste est gardée AVEC le montant pour lequel elle vaut : comparer les
   // deux dit si on est à jour, sans avoir à remettre l'état à zéro au début de
@@ -52,6 +59,7 @@ export function ChoixDuMoyen({
     getPaymentMeans(montant).then((moyens) => {
       if (!vivant) return
       setCharge({ pour: montant, moyens })
+      onMinimum?.(montant, sousLeMinimum(montant, moyens))
       // Présélectionner le premier évite un aller-retour : le client qui ne
       // veut pas choisir n'a rien à faire.
       const liste = moyens.moyens
@@ -82,6 +90,10 @@ export function ChoixDuMoyen({
 
   const moyens = charges.moyens
   const seuil = charges.autres_moyens_des
+
+  // Trop petit pour tout prestataire : le parent propose la recharge, il n'y
+  // a pas de moyen à choisir, ni de seuil « carte » à annoncer.
+  if (sousLeMinimum(montant, charges) !== null) return null
 
   // Un seul moyen, mais d'autres existent plus haut : le dire. Les masquer en
   // silence laisse croire à une panne, et prive le client d'une information
