@@ -1,5 +1,6 @@
 import { ButtonLink } from '@/components/ui/button-link'
 import { printEntryHref } from '@/features/impression/api'
+import { MARQUE } from '@/lib/marque'
 
 export function CtaBand() {
   return (
@@ -9,13 +10,13 @@ export function CtaBand() {
           Votre document, imprimé en quelques minutes
         </h2>
         <p className="max-w-xl text-muted-foreground">
-          Envoyez, payez en Mobile Money, récupérez sur votre campus. Sans application, sans
-          abonnement.
+          Envoyez, payez en ligne, récupérez dans le point Print de votre choix. Sans
+          application, sans abonnement.
         </p>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <ButtonLink href={printEntryHref('/tarifs')}>Imprimer un document</ButtonLink>
           <ButtonLink href="/points" variant="soft">
-            Trouver un point Campus
+            Trouver un point {MARQUE.nom}
           </ButtonLink>
         </div>
       </div>

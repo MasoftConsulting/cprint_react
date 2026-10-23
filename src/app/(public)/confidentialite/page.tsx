@@ -45,7 +45,7 @@ const ETAPES = [
     Icon: Smartphone,
     titre: 'De votre téléphone à notre serveur',
     texte:
-      "Chiffré par HTTPS, la même technologie que votre banque en ligne. Personne sur le Wi-Fi du campus, ni votre opérateur, ne peut lire votre document pendant l'envoi.",
+      "Chiffré par HTTPS, la même technologie que votre banque en ligne. Personne sur le Wi-Fi public, ni votre opérateur, ne peut lire votre document pendant l'envoi.",
     etat: 'chiffré',
   },
   {

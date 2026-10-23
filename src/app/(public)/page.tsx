@@ -62,11 +62,11 @@ export default async function HomePage() {
               Sans application à installer
             </span>
             <h1 className="mt-4 text-4xl leading-[1.05] font-extrabold sm:text-6xl">
-              Imprimez vos cours en 3 minutes, sur votre campus.
+              Imprimez vos documents en 3 minutes, près de chez vous.
             </h1>
             <p className="mt-5 max-w-xl text-base opacity-85 sm:text-lg">
-              {MARQUE.nom} est le service d&apos;impression en libre-service, sur les campus et dans nos points partenaires :
-              envoyez votre document, payez en Mobile Money, récupérez votre impression sur place.
+              {MARQUE.nom} est le service d&apos;impression en libre-service, dans nos points Print et chez nos partenaires :
+              envoyez votre document, payez en ligne, récupérez votre impression sur place.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href={printEntryHref('/tarifs')}>Imprimer un document</ButtonLink>
@@ -78,7 +78,7 @@ export default async function HomePage() {
           <div className="overflow-hidden rounded-3xl border border-primary-foreground/15 shadow-[var(--shadow-elegant)]">
             <Image
               src="/images/hero-point-sharp.jpg"
-              alt={`Point ${MARQUE.nom} sur un campus : deux multifonctions Sharp en libre-service sous un abri bleu, une étudiante et un étudiant au téléphone`}
+              alt={`Point ${MARQUE.nom} : deux multifonctions Sharp en libre-service sous un abri bleu, une étudiante et un étudiant au téléphone`}
               width={1200}
               height={750}
               priority
@@ -91,7 +91,7 @@ export default async function HomePage() {
         <div className="border-t border-primary-foreground/15 bg-primary-foreground/5">
           <div className="mx-auto grid max-w-6xl grid-cols-3 divide-x divide-primary-foreground/15 px-4">
             {[
-              { value: activePointsCount, label: 'points sur les campus' },
+              { value: activePointsCount, label: 'points d’impression' },
               { value: settings.avg_print_time, label: "temps moyen d'impression" },
               { value: settings.payment_methods_count, label: 'moyens de paiement' },
             ].map((stat) => (

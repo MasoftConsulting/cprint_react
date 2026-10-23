@@ -156,7 +156,7 @@ export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
           <span className="text-sm font-semibold opacity-90">Points {MARQUE.nom}</span>
           <h1 className="mt-2 font-display text-3xl font-extrabold sm:text-5xl">
-            Une borne sur votre campus
+            Une borne près de chez vous
           </h1>
           <p className="mt-4 max-w-xl opacity-85">
             Nos points d&apos;impression sont installés là où les étudiants passent déjà :

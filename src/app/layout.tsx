@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: `%s — ${MARQUE.nom} ${MARQUE.signature}`,
   },
   description:
-    'Envoyez votre document depuis votre téléphone, payez en Flooz ou T-Money/Mixx et récupérez votre impression en quelques minutes sur votre campus.',
+    'Envoyez votre document depuis votre téléphone, payez en Mobile Money, par carte ou PayPal, et récupérez votre impression en quelques minutes dans le point Print de votre choix.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

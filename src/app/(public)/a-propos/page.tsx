@@ -20,11 +20,11 @@ const CARDS = [
   },
   {
     title: 'Maintenance de proximité',
-    text: 'Des techniciens formés, basés au Togo, qui interviennent directement sur les campus.',
+    text: 'Des techniciens formés, basés au Togo, qui interviennent directement dans nos points Print.',
   },
   {
     title: 'Pensé pour les étudiants',
-    text: 'Un service simple, mobile-first et abordable, conçu avec les usages réels des campus.',
+    text: 'Un service simple, mobile-first et abordable, conçu avec les usages réels de nos clients.',
   },
 ]
 

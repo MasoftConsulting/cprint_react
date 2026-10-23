@@ -29,7 +29,7 @@ export async function SiteFooter() {
             <span className="font-display font-bold">{MARQUE.nom}</span>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            L&apos;impression en libre-service sur votre campus. Un service MaSoft Consulting,
+            L&apos;impression en libre-service, près de chez vous. Un service MaSoft Consulting,
             partenaire agréé Sharp.
           </p>
         </div>

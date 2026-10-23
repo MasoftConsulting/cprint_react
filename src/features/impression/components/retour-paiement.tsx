@@ -266,8 +266,8 @@ export function RetourPaiement({
       </p>
       <p className="mt-6 text-sm text-muted-foreground">
         Cette page n&apos;a pas reçu de référence de paiement : elle ne peut donc pas vous
-        dire où en est le vôtre. En cas de doute, prévenez un responsable du point Campus
-        Print avec votre référence sous la main.
+        dire où en est le vôtre. En cas de doute, prévenez un responsable du point{' '}
+        {MARQUE.nom} avec votre référence sous la main.
       </p>
     </Cadre>
   )

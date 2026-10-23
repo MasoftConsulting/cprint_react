@@ -10,7 +10,7 @@ import { MARQUE } from '@/lib/marque'
 export const metadata: Metadata = {
   title: 'Comment ça marche',
   description:
-    'Envoyez, choisissez vos options, payez en Mobile Money et récupérez votre impression sur votre campus. Les 4 étapes détaillées.',
+    'Envoyez, choisissez vos options, payez en Mobile Money et récupérez votre impression dans le point Print de votre choix. Les 4 étapes détaillées.',
 }
 
 const STEPS = [
