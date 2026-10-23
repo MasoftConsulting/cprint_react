@@ -14,6 +14,11 @@ const DEFAULTS = {
   // offerte. C'est le repli le moins surprenant — facturer un supplément que
   // l'exploitant n'a jamais saisi le serait davantage.
   price_livret: '0',
+  // Zone euro : vides tant qu'ils ne sont pas saisis, la zone suit alors les
+  // prix de la zone F CFA (règle de la centrale).
+  price_nb_eur: '',
+  price_couleur_eur: '',
+  price_livret_eur: '',
   contact_phone: '+228 91 35 00 00',
   contact_email: 'support@masoft-consulting.com',
   contact_address: 'Lomé, Togo',
@@ -63,10 +68,16 @@ export async function getContactInfo(): Promise<ContactInfo> {
 }
 
 export type Pricing = {
+  /** Zone F CFA, en F CFA. */
   nb: number
   couleur: number
   /** Supplément par exemplaire relié en livret agrafé. 0 = offert. */
   livret: number
+  /**
+   * Zone euro, en euros. `null` tant que les deux prix par page ne sont pas
+   * saisis : la zone euro est alors facturée aux prix de la zone F CFA.
+   */
+  eur: { nb: number; couleur: number; livret: number | null } | null
 }
 
 export async function getPricing(): Promise<Pricing> {
@@ -75,7 +86,21 @@ export async function getPricing(): Promise<Pricing> {
     nb: Number(settings.price_nb),
     couleur: Number(settings.price_couleur),
     livret: Number(settings.price_livret),
+    eur: prixZoneEuro(settings),
   }
+}
+
+/** Même règle que la centrale : les deux prix par page, ou pas de zone euro. */
+function prixZoneEuro(settings: Record<SettingKey, string>): Pricing['eur'] {
+  const lire = (cle: SettingKey) => {
+    const brut = settings[cle]?.trim().replace(',', '.')
+    const nombre = brut ? Number(brut) : Number.NaN
+    return Number.isFinite(nombre) ? nombre : null
+  }
+  const nb = lire('price_nb_eur')
+  const couleur = lire('price_couleur_eur')
+  if (nb === null || couleur === null) return null
+  return { nb, couleur, livret: lire('price_livret_eur') }
 }
 
 export async function getRechargeAmounts(): Promise<number[]> {

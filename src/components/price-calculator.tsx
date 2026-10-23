@@ -4,17 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Copy, FileText, Palette } from 'lucide-react'
 
-import { useMontants } from '@/features/devise/components/devise-client'
-import type { Devise } from '@/features/devise/devise'
+import { useDevise } from '@/features/devise/components/devise-client'
+import { afficher, prixDeZone, type Devise, type GrilleTarifaire } from '@/features/devise/devise'
 import { printEntryHref } from '@/features/impression/api'
 import { cn } from '@/lib/cn'
 
 type ColorMode = 'nb' | 'couleur'
 
 type Props = {
-  /** Prix par page, en F CFA : la devise des tarifs administrés. */
-  priceNb: number
-  priceCouleur: number
+  /** Les tarifs des deux zones, tels qu'administrés. */
+  grille: GrilleTarifaire
   /** Devise déjà employée par le serveur pour rendre ce composant. */
   devise?: Devise
 }
@@ -82,8 +81,15 @@ function Stepper({
   )
 }
 
-export function PriceCalculator({ priceNb, priceCouleur, devise }: Props) {
-  const { affiche } = useMontants(devise)
+export function PriceCalculator({ grille, devise: initiale }: Props) {
+  // La zone du visiteur : 0,10 € la page s'il lit l'euro et que la zone euro a
+  // ses prix, 10 F CFA s'il lit le franc CFA. Même règle que la centrale.
+  const devise = useDevise(initiale)
+  const prix = prixDeZone(grille, devise)
+  const affiche = (montant: number, options?: { unitaire?: boolean }) =>
+    afficher(montant, prix.devise, devise, options)
+  const priceNb = prix.mono
+  const priceCouleur = prix.couleur
   const [pagesRaw, setPagesRaw] = useState('10')
   const [copiesRaw, setCopiesRaw] = useState('1')
   const [color, setColor] = useState<ColorMode>('nb')
@@ -95,7 +101,7 @@ export function PriceCalculator({ priceNb, priceCouleur, devise }: Props) {
   // Le nombre en grand, l'unité en petit : « 1,53 » puis « € », « 1 000 » puis
   // « F CFA ». Le séparateur des milliers est une espace insécable : seule
   // l'espace ordinaire sépare le nombre de son unité.
-  const [nombreTotal, ...unite] = affiche(total, 'F CFA').split(' ')
+  const [nombreTotal, ...unite] = affiche(total).split(' ')
   const uniteTotal = unite.join(' ')
 
   return (
@@ -139,7 +145,7 @@ export function PriceCalculator({ priceNb, priceCouleur, devise }: Props) {
           >
             Noir &amp; Blanc
             <span className="block text-xs font-normal">
-              {affiche(priceNb, 'F CFA', { unitaire: true })}/page
+              {affiche(priceNb, { unitaire: true })}/page
             </span>
           </button>
           <button
@@ -155,7 +161,7 @@ export function PriceCalculator({ priceNb, priceCouleur, devise }: Props) {
           >
             Couleur
             <span className="block text-xs font-normal">
-              {affiche(priceCouleur, 'F CFA', { unitaire: true })}/page
+              {affiche(priceCouleur, { unitaire: true })}/page
             </span>
           </button>
         </div>

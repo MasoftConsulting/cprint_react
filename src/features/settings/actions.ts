@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { requireUser } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
-import { pricingSchema, siteSettingsSchema } from '@/features/settings/schema'
+import { parsePricing, siteSettingsSchema } from '@/features/settings/schema'
 import { SETTINGS_TAG } from '@/features/settings/queries'
 
 /** Écrit un lot de paramètres en une seule requête (upsert sur la clé). */
@@ -25,11 +25,7 @@ export async function updatePricing(
 ): Promise<FormState> {
   await requireUser()
 
-  const parsed = pricingSchema.safeParse({
-    price_nb: formData.get('price_nb'),
-    price_couleur: formData.get('price_couleur'),
-    price_livret: formData.get('price_livret'),
-  })
+  const parsed = parsePricing(formData)
   if (!parsed.success) {
     return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
   }

@@ -6,7 +6,13 @@ import { FaqAccordion } from '@/components/faq-accordion'
 import { getFaqForPage } from '@/features/faq/queries'
 import { PriceCalculator } from '@/components/price-calculator'
 import { AvecDevise } from '@/features/devise/components/devise-serveur'
-import { afficher, DEVISE_PAR_DEFAUT, type Devise } from '@/features/devise/devise'
+import {
+  afficher,
+  DEVISE_PAR_DEFAUT,
+  prixDeZone,
+  type Devise,
+  type GrilleTarifaire,
+} from '@/features/devise/devise'
 import { getDevise } from '@/features/devise/server'
 import { getMontantsRechargeCentrale } from '@/features/impression/queries'
 import { getPricing } from '@/features/settings/queries'
@@ -30,22 +36,26 @@ function separer(texte: string): [string, string] {
 }
 
 type Grille = {
-  pricing: { nb: number; couleur: number }
+  pricing: GrilleTarifaire
   recharges: number[]
   devise: Devise
 }
 
 /**
- * Prix et recharges, dans une devise donnée.
+ * Prix et recharges, dans la devise du visiteur.
  *
- * Les prix sont administrés en F CFA. En euros, ils sont convertis à la parité
- * fixe, et le prix d'origine reste affiché dessous : c'est lui que fixe le
- * tarif, et un client togolais qui lit la page en euros doit pouvoir le
- * retrouver.
+ * Les prix affichés sont ceux de SA zone : 0,10 € pour qui lit l'euro, si la
+ * zone euro a ses prix ; 10 F CFA pour qui lit le franc CFA. Le prix de
+ * l'autre zone est rappelé dessous, parce que c'est le lieu d'impression qui
+ * fixe le prix, et qu'un visiteur de Paris peut payer pour Lomé.
  */
 function GrilleTarifs({ pricing, recharges, devise }: Grille) {
-  const carte = (titre: string, prix: number, atouts: string[]) => {
-    const [nombre, unite] = separer(afficher(prix, 'XOF', devise, { unitaire: true }))
+  const zone = prixDeZone(pricing, devise)
+  const autre = prixDeZone(pricing, devise === 'EUR' ? 'XOF' : 'EUR')
+  // Une autre zone n'est à rappeler que si elle a vraiment d'autres prix.
+  const autreDistincte = autre.devise !== zone.devise
+  const carte = (titre: string, type: 'mono' | 'couleur', atouts: string[]) => {
+    const [nombre, unite] = separer(afficher(zone[type], zone.devise, devise, { unitaire: true }))
     return (
       <div className="surface-card p-8">
         <h2 className="font-display text-xl font-bold">{titre}</h2>
@@ -53,8 +63,17 @@ function GrilleTarifs({ pricing, recharges, devise }: Grille) {
           <span className="font-display text-4xl font-extrabold text-primary">{nombre}</span>{' '}
           <span className="text-muted-foreground">{unite} / page</span>
         </p>
-        {devise !== 'XOF' && (
-          <p className="mt-1 text-xs text-muted-foreground">soit {prix} F CFA la page</p>
+        {autreDistincte ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Dans les points {autre.devise === 'EUR' ? 'en euros' : 'en F CFA'} :{' '}
+            {afficher(autre[type], autre.devise, autre.devise, { unitaire: true })} la page
+          </p>
+        ) : (
+          zone.devise !== devise && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              soit {afficher(zone[type], zone.devise, zone.devise, { unitaire: true })} la page
+            </p>
+          )
         )}
         <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
           {atouts.map((atout) => (
@@ -68,8 +87,8 @@ function GrilleTarifs({ pricing, recharges, devise }: Grille) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16">
       <div className="grid gap-6 sm:grid-cols-2">
-        {carte('Noir & Blanc', pricing.nb, ['Recto ou recto/verso', 'Formats A4', 'Qualité laser Sharp'])}
-        {carte('Couleur', pricing.couleur, [
+        {carte('Noir & Blanc', 'mono', ['Recto ou recto/verso', 'Formats A4', 'Qualité laser Sharp'])}
+        {carte('Couleur', 'couleur', [
           'Idéal pour graphiques et présentations',
           'Formats A4',
           'Couleurs fidèles',
@@ -137,10 +156,10 @@ export default async function TarifsPage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="mx-auto max-w-xl">
-          <Suspense fallback={<PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} />}>
+          <Suspense fallback={<PriceCalculator grille={pricing} />}>
             <AvecDevise>
               {(devise) => (
-                <PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} devise={devise} />
+                <PriceCalculator grille={pricing} devise={devise} />
               )}
             </AvecDevise>
           </Suspense>

@@ -9,7 +9,7 @@ import { getActivePrintPointsCount } from '@/features/print-points/queries'
 import { getPricing, getSettings } from '@/features/settings/queries'
 import { MARQUE } from '@/lib/marque'
 import { Suspense } from 'react'
-import { AvecDevise, Prix } from '@/features/devise/components/devise-serveur'
+import { AvecDevise, PrixDePage } from '@/features/devise/components/devise-serveur'
 
 const STEPS = [
   {
@@ -141,8 +141,8 @@ export default async function HomePage() {
           </h2>
           <p className="mt-3 text-muted-foreground">
             <Suspense fallback={`${pricing.nb} F CFA la page en noir & blanc, ${pricing.couleur} F CFA en couleur.`}>
-              <Prix montant={pricing.nb} unitaire /> la page en noir &amp; blanc,{' '}
-              <Prix montant={pricing.couleur} unitaire /> en couleur.
+              <PrixDePage grille={pricing} type="mono" /> la page en noir &amp; blanc,{' '}
+              <PrixDePage grille={pricing} type="couleur" /> en couleur.
             </Suspense>{' '}
             Aucun abonnement, aucun frais caché. Simulez votre impression avant de vous déplacer.
           </p>
@@ -158,10 +158,10 @@ export default async function HomePage() {
           </ul>
         </div>
 
-        <Suspense fallback={<PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} />}>
+        <Suspense fallback={<PriceCalculator grille={pricing} />}>
           <AvecDevise>
             {(devise) => (
-              <PriceCalculator priceNb={pricing.nb} priceCouleur={pricing.couleur} devise={devise} />
+              <PriceCalculator grille={pricing} devise={devise} />
             )}
           </AvecDevise>
         </Suspense>

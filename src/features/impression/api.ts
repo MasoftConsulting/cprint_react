@@ -116,12 +116,45 @@ export type Duplex = 'SIMPLEX' | 'DUPLEX'
 /** A4 par défaut. Une page A3 se facture deux A4 — le calcul est fait par le serveur. */
 export type PaperSize = 'A4' | 'A3'
 
+/**
+ * Zone tarifaire du LIEU D'IMPRESSION : « XOF » (Togo…) ou « EUR » (France…).
+ *
+ * C'est elle qui fixe le prix, pas la devise affichée ni le moyen de paiement,
+ * et le code ne s'imprime que dans un point de cette zone.
+ */
+export type ZoneTarifaire = 'XOF' | 'EUR'
+
 export type PrintOptions = {
   job_ids: number[]
   color_mode: ColorMode
   duplex: Duplex
   copies: number
   paper_size: PaperSize
+  /** Absente : zone F CFA, comme avant les zones. */
+  zone?: ZoneTarifaire
+}
+
+/** Une zone où l'on peut imprimer aujourd'hui (un site actif au moins). */
+export type ZoneImpression = {
+  code: ZoneTarifaire
+  /** Pays des sites actifs de cette zone : « Togo », « France »… */
+  pays: string[]
+}
+
+/**
+ * Les zones desservies, lues sur la centrale.
+ *
+ * Liste vide si la centrale ne les annonce pas encore (version antérieure) ou
+ * ne répond pas : le parcours ne propose alors aucun choix, et le serveur
+ * applique la zone F CFA, comme avant.
+ */
+export async function getZonesImpression(): Promise<ZoneImpression[]> {
+  try {
+    const config = await request<{ zones?: ZoneImpression[] }>('/payments/config/pricing')
+    return (config.zones ?? []).filter((z) => z.code === 'XOF' || z.code === 'EUR')
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -354,8 +387,9 @@ export function getQuote(
   copies: number,
   email?: string | null,
   paper_size: PaperSize = 'A4',
+  zone?: ZoneTarifaire,
 ) {
-  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email, paper_size })
+  return postJson<Quote>('/payments/quote', { job_ids, color_mode, copies, email, paper_size, zone })
 }
 
 export function createPayment(options: PrintOptions, email: string | null, moyen = '') {

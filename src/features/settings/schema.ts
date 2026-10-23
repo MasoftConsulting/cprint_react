@@ -1,14 +1,58 @@
 import { z } from 'zod'
 
-/** Tarifs affichés sur la page publique et dans le simulateur. */
-export const pricingSchema = z.object({
-  price_nb: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
-  price_couleur: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
-  // Supplément facturé **par exemplaire relié**, et non par page : une piqûre
-  // à cheval coûte la même chose sur huit pages que sur quarante. Zéro = la
-  // reliure est offerte.
-  price_livret: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
-})
+/**
+ * Un prix en euros : vide (zone non tarifée), ou un montant au centime près.
+ * La virgule est acceptée — c'est elle qu'on tape en France.
+ */
+const prixEuro = z.preprocess(
+  (valeur) => (typeof valeur === 'string' ? valeur.trim().replace(',', '.') : valeur ?? ''),
+  z
+    .string()
+    .regex(/^$|^\d{1,3}(\.\d{1,2})?$/, 'Indiquez un montant en euros, au centime près (ex : 0,10).'),
+)
+
+/**
+ * Tarifs des deux zones.
+ *
+ * - Zone F CFA (Togo et UEMOA) : en F CFA entiers.
+ * - Zone euro (France…) : en euros. Laissés vides, la zone euro est facturée
+ *   aux prix de la zone F CFA — c'est la règle de la centrale.
+ *
+ * C'est le **lieu d'impression** qui fixe la zone, pas la devise affichée.
+ */
+export const pricingSchema = z
+  .object({
+    price_nb: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
+    price_couleur: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
+    // Supplément facturé **par exemplaire relié**, et non par page : une piqûre
+    // à cheval coûte la même chose sur huit pages que sur quarante. Zéro = la
+    // reliure est offerte.
+    price_livret: z.coerce.number().int().min(0, 'Indiquez un entier positif.'),
+    price_nb_eur: prixEuro,
+    price_couleur_eur: prixEuro,
+    price_livret_eur: prixEuro,
+  })
+  .superRefine((tarifs, ctx) => {
+    // Les deux prix par page, ou aucun : la centrale ignore une demi-grille,
+    // qui ferait payer la couleur en euros et le noir au tarif togolais.
+    const nb = tarifs.price_nb_eur !== ''
+    const couleur = tarifs.price_couleur_eur !== ''
+    if (nb !== couleur) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [nb ? 'price_couleur_eur' : 'price_nb_eur'],
+        message: 'Renseignez les deux prix de la zone euro, ou aucun.',
+      })
+    }
+  })
+
+/** Lit le formulaire des tarifs d'après le schéma : aucun champ ne peut être oublié. */
+export function parsePricing(formData: FormData) {
+  const champs = Object.keys(pricingSchema.shape) as (keyof PricingInput)[]
+  return pricingSchema.safeParse(
+    Object.fromEntries(champs.map((champ) => [champ, formData.get(champ)])),
+  )
+}
 
 /** Paramètres généraux du site (coordonnées, recharges, stats du hero). */
 export const siteSettingsSchema = z.object({

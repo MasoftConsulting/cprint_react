@@ -116,6 +116,42 @@ export function formaterMontant(
   return `${total.format(centimes / 100)} ${LIBELLES.EUR.court}`
 }
 
+/**
+ * Les tarifs tels qu'administrés : la zone F CFA en F CFA, la zone euro en
+ * euros, ou absente tant que ses prix ne sont pas saisis.
+ */
+export type GrilleTarifaire = {
+  nb: number
+  couleur: number
+  livret: number
+  eur: { nb: number; couleur: number; livret: number | null } | null
+}
+
+export type PrixDeZone = { mono: number; couleur: number; livret: number; devise: Devise }
+
+/**
+ * Les prix d'une zone, dans la devise où ils sont fixés.
+ *
+ * Même règle que la centrale (`pricing_service.get_pricing`) : une zone euro
+ * sans prix saisis est facturée aux prix de la zone F CFA. Afficher autre
+ * chose annoncerait un prix que la centrale ne débite pas.
+ *
+ * Pour l'affichage d'une page publique, la zone retenue est celle de la devise
+ * du visiteur : c'est la plus probable. Le prix réellement payé dépend du lieu
+ * d'impression, que le client choisit au moment de payer.
+ */
+export function prixDeZone(grille: GrilleTarifaire, zone: Devise): PrixDeZone {
+  if (zone === 'EUR' && grille.eur) {
+    return {
+      mono: grille.eur.nb,
+      couleur: grille.eur.couleur,
+      livret: grille.eur.livret ?? grille.livret / XOF_PAR_EUR,
+      devise: 'EUR',
+    }
+  }
+  return { mono: grille.nb, couleur: grille.couleur, livret: grille.livret, devise: 'XOF' }
+}
+
 /** Convertit puis formate : le cas le plus courant. */
 export function afficher(
   montant: number,

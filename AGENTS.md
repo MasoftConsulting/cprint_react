@@ -52,6 +52,23 @@ Lis-la avant d'utiliser une API dont tu n'es pas certain — ne code pas de mém
 - `npm run verify` vérifie que l'euro affiché est exactement ce que la centrale
   débite (centime supérieur). La CI le lance.
 
+## Zones tarifaires
+
+- **Deux zones** : F CFA (UEMOA : `price_nb`, `price_couleur`, `price_livret`, en
+  F CFA) et euro (`price_nb_eur`, `price_couleur_eur`, `price_livret_eur`, en
+  euros), dans `settings`, administrées depuis `/admin/tarifs`. Zone euro vide :
+  facturée aux prix F CFA — c'est la règle de la centrale, `prixDeZone()` la
+  reproduit à l'identique.
+- **La zone d'un paiement est celle du lieu d'impression**, choisie par le client
+  dans le parcours (défaut : la zone de sa devise). Jamais la devise affichée,
+  jamais le moyen de paiement.
+- **Un code ne s'imprime que dans la zone où il a été payé** : la centrale le
+  refuse à la borne de l'autre zone. La zone d'un point vient du pays de son
+  site (`print_points.country`), relié par `agent_name`.
+- **Supabase est la source unique** des tarifs et des montants de recharge
+  (`recharge_amounts`) ; les variables d'environnement de la centrale ne sont
+  plus que des replis.
+
 ## Service d'impression (API Python)
 
 Le parcours `/imprimer` s'appuie sur une **API FastAPI séparée**, dans le dépôt

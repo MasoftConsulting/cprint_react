@@ -20,6 +20,7 @@ async function PricingFormLoader() {
       priceNb={pricing.nb}
       priceCouleur={pricing.couleur}
       priceLivret={pricing.livret}
+      eur={pricing.eur}
     />
   )
 }
@@ -32,7 +33,11 @@ export default function AdminPricingPage() {
         <Link href="/tarifs" className="text-primary hover:underline" target="_blank">
           Tarifs
         </Link>{' '}
-        et dans le simulateur de prix.
+        et dans le simulateur de prix, et ce sont eux que la centrale débite.
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        La zone est celle du <strong>point où l&apos;on imprime</strong>, d&apos;après le pays du
+        site : un code payé dans une zone ne s&apos;imprime que dans les points de cette zone.
       </p>
 
       <div className="mt-6">

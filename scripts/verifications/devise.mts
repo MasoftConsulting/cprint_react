@@ -15,6 +15,7 @@ import {
   deviseDuLibelle,
   deviseDuPays,
   lireDevise,
+  prixDeZone,
   XOF_PAR_EUR,
 } from '../../src/features/devise/devise.ts'
 
@@ -66,6 +67,25 @@ verifier('« EUR » est de l’euro', deviseDuLibelle('EUR') === 'EUR')
 // Un libellé inconnu n'est pas converti : mieux vaut sa devise d'origine
 // qu'une conversion appliquée à tort.
 verifier('un libellé inconnu n’est pas converti', deviseDuLibelle('???') === 'XOF')
+
+// --- Prix de zone : même règle que la centrale (pricing_service.get_pricing) ---
+const sansEuro = { nb: 10, couleur: 50, livret: 100, eur: null }
+const avecEuro = { nb: 10, couleur: 50, livret: 100, eur: { nb: 0.1, couleur: 0.5, livret: 0.5 } }
+const z1 = prixDeZone(avecEuro, 'EUR')
+verifier('zone euro tarifée : 0,10 € la page, en euros', z1.mono === 0.1 && z1.devise === 'EUR', JSON.stringify(z1))
+verifier('et 0,50 € la couleur', z1.couleur === 0.5)
+const z2 = prixDeZone(sansEuro, 'EUR')
+verifier('zone euro sans prix : ceux de la zone F CFA, comme la centrale',
+  z2.mono === 10 && z2.devise === 'XOF', JSON.stringify(z2))
+verifier('donc affichés convertis : 0,015 €', net(afficher(z2.mono, z2.devise, 'EUR', { unitaire: true })) === '0,015 €')
+verifier('zone euro tarifée, affichée telle quelle : 0,10 €',
+  net(afficher(z1.mono, z1.devise, 'EUR', { unitaire: true })) === '0,10 €',
+  afficher(z1.mono, z1.devise, 'EUR', { unitaire: true }))
+verifier('12 pages à 0,10 € : 1,20 €, pas 1,21 €', net(afficher(12 * z1.mono, 'EUR', 'EUR')) === '1,20 €',
+  afficher(12 * z1.mono, 'EUR', 'EUR'))
+const z3 = prixDeZone({ ...avecEuro, eur: { nb: 0.1, couleur: 0.5, livret: null } }, 'EUR')
+verifier('livret euro absent : supplément F CFA converti', Math.abs(z3.livret - 100 / XOF_PAR_EUR) < 1e-12, String(z3.livret))
+verifier('zone F CFA inchangée', prixDeZone(avecEuro, 'XOF').mono === 10)
 
 console.log(`\n${ok} vérifications passées, ${echecs} en échec`)
 process.exit(echecs ? 1 : 0)

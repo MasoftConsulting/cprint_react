@@ -28,6 +28,7 @@ import {
   formatSize,
   getPayment,
   getQuote,
+  getZonesImpression,
   getSession,
   isPrintApiConfigured,
   previewImageUrl,
@@ -48,11 +49,14 @@ import {
   type PrintSession,
   type Quote,
   type WalletQuote,
+  type ZoneImpression,
+  type ZoneTarifaire,
 } from '../api'
 import { MARQUE } from '@/lib/marque'
 import {
   deviseDuMoyen,
   deviseDuPaiement,
+  useDevise,
   useMontants,
 } from '@/features/devise/components/devise-client'
 
@@ -132,6 +136,30 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   const [preview, setPreview] = useState<number | null>(null)
 
   /**
+   * Lieu d'impression. C'est lui qui fixe le prix — pas la devise affichée —
+   * et le code ne s'imprimera que dans un point de cette zone.
+   *
+   * Par défaut, la zone de la devise du visiteur : un visiteur de Lomé
+   * imprime au Togo, un visiteur de Paris en France. Le parent en France qui
+   * paie pour un étudiant de Lomé choisit l'autre zone.
+   */
+  const [zones, setZones] = useState<ZoneImpression[]>([])
+  const [zoneChoisie, setZoneChoisie] = useState<ZoneTarifaire | null>(null)
+  const deviseVisiteur = useDevise()
+  const zone: ZoneTarifaire | undefined =
+    zoneChoisie ??
+    (zones.some((z) => z.code === deviseVisiteur) ? deviseVisiteur : zones[0]?.code)
+  useEffect(() => {
+    let vivant = true
+    getZonesImpression().then((liste) => {
+      if (vivant) setZones(liste)
+    })
+    return () => {
+      vivant = false
+    }
+  }, [])
+
+  /**
    * Empreinte de ce qui est facturable : documents sélectionnés, couleur,
    * nombre d'exemplaires. Un devis et un paiement ne valent que pour
    * l'empreinte sous laquelle ils ont été obtenus.
@@ -144,8 +172,8 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
    */
   const optionsKey = useMemo(
     () =>
-      `${[...selected].sort((a, b) => a - b).join(',')}|${colorMode}|${copies}|${paperSize}`,
-    [selected, colorMode, copies, paperSize],
+      `${[...selected].sort((a, b) => a - b).join(',')}|${colorMode}|${copies}|${paperSize}|${zone ?? ''}`,
+    [selected, colorMode, copies, paperSize, zone],
   )
 
   const [quoteState, setQuoteState] = useState<{ key: string; quote: Quote } | null>(null)
@@ -328,7 +356,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     let cancelled = false
     // L'adresse permet à la centrale de dire si un compte à crédit couvre
     // l'impression, et combien il restera après.
-    getQuote(selected, colorMode, copies, session?.email ?? null, paperSize)
+    getQuote(selected, colorMode, copies, session?.email ?? null, paperSize, zone)
       .then((next) => {
         if (!cancelled) setQuoteState({ key: optionsKey, quote: next })
       })
@@ -343,7 +371,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     // `session?.email` en dépendance : c'est elle qui détermine si un compte à
     // crédit couvre l'impression. L'omettre afficherait un devis de client
     // payant à quelqu'un qui a du crédit.
-  }, [step, selected, colorMode, copies, paperSize, optionsKey, session?.email])
+  }, [step, selected, colorMode, copies, paperSize, zone, optionsKey, session?.email])
 
   /**
    * Relit le devis sans attendre le prochain changement d'options : appelé
@@ -353,13 +381,13 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   const refreshQuote = useCallback(async () => {
     if (selected.length === 0) return
     try {
-      const next = await getQuote(selected, colorMode, copies, sessionEmail, paperSize)
+      const next = await getQuote(selected, colorMode, copies, sessionEmail, paperSize, zone)
       setQuoteState({ key: optionsKey, quote: next })
     } catch {
       // Le devis affiché reste celui d'avant : le serveur recalculera de
       // toute façon au moment de payer.
     }
-  }, [selected, colorMode, copies, sessionEmail, paperSize, optionsKey])
+  }, [selected, colorMode, copies, sessionEmail, paperSize, zone, optionsKey])
 
   // --- Recharge du portefeuille ----------------------------------------------
   async function handleTopUp(amount: number) {
@@ -423,7 +451,7 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
     setError(null)
     try {
       const created = await createPayment(
-        { job_ids: selected, color_mode: colorMode, duplex, copies, paper_size: paperSize },
+        { job_ids: selected, color_mode: colorMode, duplex, copies, paper_size: paperSize, zone },
         session?.email ?? null,
         moyen,
       )
@@ -559,6 +587,9 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
           onColorMode={setColorMode}
           paperSize={paperSize}
           onPaperSize={setPaperSize}
+          zones={zones}
+          zone={zone}
+          onZone={setZoneChoisie}
           duplex={duplex}
           onDuplex={setDuplex}
           copies={copies}
@@ -773,6 +804,9 @@ function DocumentsStep({
   onColorMode,
   paperSize,
   onPaperSize,
+  zones,
+  zone,
+  onZone,
   duplex,
   onDuplex,
   copies,
@@ -797,6 +831,9 @@ function DocumentsStep({
   onColorMode: (value: ColorMode) => void
   paperSize: PaperSize
   onPaperSize: (value: PaperSize) => void
+  zones: ZoneImpression[]
+  zone: ZoneTarifaire | undefined
+  onZone: (value: ZoneTarifaire) => void
   duplex: Duplex
   onDuplex: (value: Duplex) => void
   copies: number
@@ -864,6 +901,27 @@ function DocumentsStep({
           </li>
         ))}
       </ul>
+
+      {zones.length > 1 && zone && (
+        <div className="mt-6">
+          <Choice
+            label="Où imprimerez-vous ?"
+            icon={<MapPin className="h-4 w-4" aria-hidden />}
+            value={zone}
+            onChange={onZone}
+            options={zones.map((z) => ({
+              value: z.code,
+              label: `${z.pays.join(', ') || (z.code === 'EUR' ? 'Zone euro' : 'Zone F CFA')} · ${
+                z.code === 'EUR' ? '€' : 'F CFA'
+              }`,
+            }))}
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Le prix est celui du lieu d&apos;impression, et votre code ne s&apos;imprimera que
+            dans un point de cette zone.
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Choice

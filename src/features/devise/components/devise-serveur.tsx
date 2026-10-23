@@ -1,4 +1,4 @@
-import { afficher, type Devise } from '../devise'
+import { afficher, prixDeZone, type Devise, type GrilleTarifaire } from '../devise'
 import { getDevise } from '../server'
 import { SelecteurDevise } from './devise-client'
 
@@ -33,4 +33,22 @@ export async function Prix({
 /** Pour un composant client qui doit être hydraté dans la bonne devise. */
 export async function AvecDevise({ children }: { children: (devise: Devise) => React.ReactNode }) {
   return <>{children(await getDevise())}</>
+}
+
+/**
+ * Le prix d'une page dans la zone du visiteur, dans sa devise.
+ *
+ * 0,10 € pour un visiteur qui lit l'euro, si la zone euro a ses prix ; sinon
+ * la conversion des prix F CFA, que la centrale applique aussi.
+ */
+export async function PrixDePage({
+  grille,
+  type,
+}: {
+  grille: GrilleTarifaire
+  type: 'mono' | 'couleur' | 'livret'
+}) {
+  const devise = await getDevise()
+  const prix = prixDeZone(grille, devise)
+  return <>{afficher(prix[type], prix.devise, devise, { unitaire: type !== 'livret' })}</>
 }

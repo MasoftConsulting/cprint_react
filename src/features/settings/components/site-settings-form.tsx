@@ -108,10 +108,15 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
             name="recharge_amounts"
             type="text"
             defaultValue={settings.recharge_amounts}
-            placeholder="500,1000,2000,5000"
+            placeholder="100,500,1000,2000,5000"
             className={INPUT_CLASS}
           />
           <FieldError messages={state.errors?.recharge_amounts} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            C&apos;est <strong>la</strong> liste des montants proposés aux clients : le site et
+            la centrale la lisent ici, et la centrale refuse tout autre montant. En F CFA,
+            affichés en euros aux visiteurs qui lisent l&apos;euro.
+          </p>
         </div>
       </section>
 
