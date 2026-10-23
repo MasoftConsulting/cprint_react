@@ -121,6 +121,30 @@ export function MachineForm({ action, machine, submitLabel }: Props) {
             </select>
             <FieldError messages={state.errors?.actif} />
           </div>
+
+          {/* Affichées sur la page Points, avec la couleur et le format. */}
+          {(
+            [
+              ['photocopie', 'Photocopie', machine?.photocopie],
+              ['scan', 'Scan', machine?.scan],
+            ] as const
+          ).map(([nom, libelle, valeur]) => (
+            <div key={nom}>
+              <label htmlFor={nom} className="text-sm font-medium text-muted-foreground">
+                {libelle}
+              </label>
+              <select
+                id={nom}
+                name={nom}
+                defaultValue={valeur === false ? 'false' : 'true'}
+                className={INPUT_CLASS}
+              >
+                <option value="true">Proposée</option>
+                <option value="false">Non proposée</option>
+              </select>
+              <FieldError messages={state.errors?.[nom]} />
+            </div>
+          ))}
         </section>
 
         <section className="surface-card space-y-5 p-6 sm:p-8">

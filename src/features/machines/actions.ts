@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { requireUser } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
-import { machineSchema } from '@/features/machines/schema'
+import { OPTIONS_MIGRATION_005, parseMachine } from '@/features/machines/schema'
 import { PRINT_POINTS_TAG } from '@/features/print-points/queries'
 
 /** Code d'erreur Postgres pour une violation de contrainte d'unicité. */
@@ -17,18 +17,30 @@ const DUPLICATE_SERIAL = {
   serial_number: ['Une machine avec ce numéro de série existe déjà.'],
 }
 
-function parse(formData: FormData) {
-  return machineSchema.safeParse({
-    serial_number: formData.get('serial_number'),
-    machine_name: formData.get('machine_name'),
-    mac_address: formData.get('mac_address'),
-    ip_address: formData.get('ip_address'),
-    type: formData.get('type'),
-    fonction: formData.get('fonction'),
-    date_acquisition: formData.get('date_acquisition'),
-    date_mise_service: formData.get('date_mise_service'),
-    actif: formData.get('actif'),
-  })
+const parse = parseMachine
+
+/**
+ * Écrit une machine ; si la base n'a pas encore les colonnes des options
+ * (migration 005 non lancée), réécrit sans elles.
+ *
+ * Supabase répond alors PGRST204 (« Could not find the 'photocopie' column »)
+ * — relevé sur la vraie base. Refuser tout l'enregistrement pour deux cases à
+ * cocher bloquerait la gestion du parc ; les taire ferait croire qu'elles sont
+ * enregistrées. On enregistre le reste, et on le dit.
+ */
+async function ecrire<T extends Record<string, unknown>>(
+  donnees: T,
+  operation: (valeurs: Partial<T>) => PromiseLike<{ error: { code?: string; message?: string } | null }>,
+) {
+  const premier = await operation(donnees)
+  const absente =
+    premier.error?.code === 'PGRST204' && /photocopie|scan/.test(premier.error.message ?? '')
+  if (!absente) return { error: premier.error, sansOptions: false }
+
+  const sansOptions = { ...donnees }
+  for (const colonne of OPTIONS_MIGRATION_005) delete sansOptions[colonne]
+  const second = await operation(sansOptions)
+  return { error: second.error, sansOptions: true }
 }
 
 export async function createMachine(
@@ -43,7 +55,9 @@ export async function createMachine(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('machine').insert(parsed.data)
+  const { error, sansOptions } = await ecrire(parsed.data, (valeurs) =>
+    supabase.from('machine').insert(valeurs),
+  )
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
@@ -55,7 +69,7 @@ export async function createMachine(
   // Le compteur de machines par site est lu par la page publique.
   updateTag(PRINT_POINTS_TAG)
   // `redirect` fonctionne par exception : il doit rester hors d'un bloc try.
-  redirect('/admin/machines?flash=created')
+  redirect(`/admin/machines?flash=${sansOptions ? 'created-sans-options' : 'created'}`)
 }
 
 export async function updateMachine(
@@ -71,10 +85,9 @@ export async function updateMachine(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
-    .from('machine')
-    .update(parsed.data)
-    .eq('id_machine', idMachine)
+  const { error, sansOptions } = await ecrire(parsed.data, (valeurs) =>
+    supabase.from('machine').update(valeurs).eq('id_machine', idMachine),
+  )
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) {
@@ -84,7 +97,7 @@ export async function updateMachine(
   }
 
   updateTag(PRINT_POINTS_TAG)
-  redirect('/admin/machines?flash=updated')
+  redirect(`/admin/machines?flash=${sansOptions ? 'updated-sans-options' : 'updated'}`)
 }
 
 export async function deleteMachine(formData: FormData): Promise<void> {

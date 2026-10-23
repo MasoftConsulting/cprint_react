@@ -9,6 +9,7 @@ import { AvecDevise } from '@/features/devise/components/devise-serveur'
 import {
   afficher,
   DEVISE_PAR_DEFAUT,
+  paliersDeRecharge,
   prixDeZone,
   type Devise,
   type GrilleTarifaire,
@@ -38,6 +39,8 @@ function separer(texte: string): [string, string] {
 type Grille = {
   pricing: GrilleTarifaire
   recharges: number[]
+  /** Paliers de la zone euro, en euros ; vide tant qu'ils ne sont pas saisis. */
+  rechargesEur: number[]
   devise: Devise
 }
 
@@ -49,7 +52,7 @@ type Grille = {
  * l'autre zone est rappelé dessous, parce que c'est le lieu d'impression qui
  * fixe le prix, et qu'un visiteur de Paris peut payer pour Lomé.
  */
-function GrilleTarifs({ pricing, recharges, devise }: Grille) {
+function GrilleTarifs({ pricing, recharges, rechargesEur, devise }: Grille) {
   const zone = prixDeZone(pricing, devise)
   const autre = prixDeZone(pricing, devise === 'EUR' ? 'XOF' : 'EUR')
   // Une autre zone n'est à rappeler que si elle a vraiment d'autres prix.
@@ -101,15 +104,20 @@ function GrilleTarifs({ pricing, recharges, devise }: Grille) {
           Rechargez une fois, imprimez toute la semaine sans repasser par un paiement.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
-          {recharges.map((montant) => {
-            const [nombre, unite] = separer(afficher(montant, 'XOF', devise))
+          {paliersDeRecharge(recharges, rechargesEur, devise).map((palier) => {
+            const [nombre, unite] = separer(afficher(palier.xof, 'XOF', devise))
             return (
-              <div key={montant} className="rounded-xl border border-border p-4 text-center">
+              <div
+                key={`${palier.zone}-${palier.montant}`}
+                className="rounded-xl border border-border p-4 text-center"
+              >
                 <p className="font-display text-2xl font-extrabold">{nombre}</p>
                 <p className="text-xs text-muted-foreground">{unite}</p>
-                {devise !== 'XOF' && (
+                {/* Un palier F CFA lu en euros : son montant d'origine. Un
+                    palier euro n'en a pas d'autre — c'est un montant rond. */}
+                {palier.zone === 'XOF' && devise !== 'XOF' && (
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {afficher(montant, 'XOF', 'XOF')}
+                    {afficher(palier.montant, 'XOF', 'XOF')}
                   </p>
                 )}
               </div>
@@ -132,7 +140,7 @@ export default async function TarifsPage() {
     getMontantsRechargeCentrale(),
     getFaqForPage('tarifs'),
   ])
-  const grille = { pricing, recharges: recharge.amounts }
+  const grille = { pricing, recharges: recharge.amounts, rechargesEur: recharge.amountsEur }
 
   return (
     <>

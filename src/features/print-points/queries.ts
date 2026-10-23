@@ -28,8 +28,24 @@ export type PrintPoint = {
 }
 
 /** Un site enrichi du nombre de machines actives qui y sont affectées. */
+/**
+ * Ce qu'une machine sait faire — et rien d'autre : ni numéro de série, ni
+ * adresse. Vient de la vue `site_machine_options`, qui n'expose aucun
+ * identifiant du parc.
+ */
+export type OptionsMachine = {
+  rang: number
+  couleur: boolean
+  /** Format maximal : « A3 », ou « A4 » (A4 au plus). */
+  format: 'A4' | 'A3'
+  photocopie: boolean
+  scan: boolean
+}
+
 export type PrintPointWithMachines = PrintPoint & {
   machinesActives: number
+  /** Vide tant que la migration 005 n'est pas lancée, ou sans machine affectée. */
+  machines: OptionsMachine[]
 }
 
 const COLUMNS =
@@ -44,6 +60,14 @@ const COLUMNS =
  */
 const COLUMNS_SANS_AGENT =
   'id_site, site_name, site_address, city, country, latitude, longitude, actif'
+
+/** La vue des options n'existe pas encore (migration 005 non lancée). */
+function vueAbsente(error: { message?: string; code?: string } | null): boolean {
+  return Boolean(
+    error && (error.code === 'PGRST205' || error.code === '42P01' ||
+      error.message?.includes('site_machine_options')),
+  )
+}
 
 function colonneAbsente(error: { message?: string } | null): boolean {
   return Boolean(error?.message?.includes('agent_name'))
@@ -116,13 +140,36 @@ export async function getPrintPointsWithMachines(): Promise<PrintPointWithMachin
   cacheLife('max')
 
   const supabase = createAnonClient()
-  const [sites, counts] = await Promise.all([
+  const [sites, counts, options] = await Promise.all([
     lireSites(),
     supabase.from('site_machine_counts').select('id_site, machines_actives'),
+    supabase
+      .from('site_machine_options')
+      .select('id_site, rang, fonction, type, photocopie, scan')
+      .order('rang'),
   ])
 
   if (!sites) return []
   logQueryError('lecture des compteurs de machines', counts.error)
+  // Vue absente (migration 005 non lancée) : la page s'affiche comme avant,
+  // sans la liste des options. Une page Points cassée pour un détail
+  // d'affichage serait bien pire que son absence.
+  if (options.error && !vueAbsente(options.error)) {
+    logQueryError('lecture des options des machines', options.error)
+  }
+
+  const optionsParSite = new Map<number, OptionsMachine[]>()
+  for (const row of options.error ? [] : (options.data ?? [])) {
+    const liste = optionsParSite.get(Number(row.id_site)) ?? []
+    liste.push({
+      rang: Number(row.rang),
+      couleur: row.fonction === 'couleur',
+      format: row.type === 'A3' ? 'A3' : 'A4',
+      photocopie: Boolean(row.photocopie),
+      scan: Boolean(row.scan),
+    })
+    optionsParSite.set(Number(row.id_site), liste)
+  }
 
   const byId = new Map<number, number>()
   for (const row of counts.data ?? []) {
@@ -131,7 +178,11 @@ export async function getPrintPointsWithMachines(): Promise<PrintPointWithMachin
 
   return sites.map((row) => {
     const site = normalize(row)
-    return { ...site, machinesActives: byId.get(site.id_site) ?? 0 }
+    return {
+      ...site,
+      machinesActives: byId.get(site.id_site) ?? 0,
+      machines: optionsParSite.get(site.id_site) ?? [],
+    }
   })
 }
 

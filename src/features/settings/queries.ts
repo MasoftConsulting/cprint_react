@@ -24,7 +24,9 @@ const DEFAULTS = {
   contact_address: 'Lomé, Togo',
   // Vide par défaut : on retombe alors sur `contact_email`.
   notification_email: '',
-  recharge_amounts: '500,1000,2000,5000',
+  recharge_amounts: '100,500,1000,2000,5000',
+  // Paliers de la zone euro, en euros : vides tant qu'ils ne sont pas saisis.
+  recharge_amounts_eur: '',
   avg_print_time: '3 min',
   payment_methods_count: '3',
 } as const

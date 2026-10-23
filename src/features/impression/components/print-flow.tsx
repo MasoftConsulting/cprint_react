@@ -53,6 +53,7 @@ import {
   type ZoneTarifaire,
 } from '../api'
 import { MARQUE } from '@/lib/marque'
+import { paliersDeRecharge, type Palier } from '@/features/devise/devise'
 import {
   deviseDuMoyen,
   deviseDuPaiement,
@@ -390,12 +391,12 @@ export function PrintFlow({ resumeToken = null }: { resumeToken?: string | null 
   }, [selected, colorMode, copies, sessionEmail, paperSize, zone, optionsKey])
 
   // --- Recharge du portefeuille ----------------------------------------------
-  async function handleTopUp(amount: number) {
+  async function handleTopUp(palier: Palier) {
     if (!session?.email) return
     setBusy(true)
     setError(null)
     try {
-      const created = await topUpWallet(session.email, amount, moyen)
+      const created = await topUpWallet(session.email, palier.montant, moyen, palier.zone)
       setTopUp(created)
       if (created.status === 'APPROVED') {
         // Mode simulé : le solde est déjà crédité.
@@ -844,7 +845,7 @@ function DocumentsStep({
   onMoyen: (code: string) => void
   onPay: () => void
   /** `null` dans le parcours par code : recharger exige l'adresse de la session. */
-  onTopUp: ((amount: number) => void) | null
+  onTopUp: ((palier: Palier) => void) | null
   onReady: () => void
   onBack: () => void
 }) {
@@ -1104,6 +1105,7 @@ function DocumentsStep({
         !quote.credit?.couvert && (
         <TopUpOffer
           amounts={quote.montants_de_recharge ?? []}
+          amountsEur={quote.montants_de_recharge_eur ?? []}
           wallet={quote.portefeuille ?? null}
           currency={quote.currency}
           busy={busy}
@@ -1184,23 +1186,30 @@ function DocumentsStep({
  */
 function TopUpOffer({
   amounts,
+  amountsEur,
   wallet,
   currency,
   busy,
   onTopUp,
 }: {
+  /** Paliers F CFA. */
   amounts: number[]
+  /** Paliers de la zone euro, en euros : proposés aux visiteurs qui lisent l'euro. */
+  amountsEur: number[]
   /** `null` = cette adresse n'a jamais rechargé : on explique le principe. */
   wallet: WalletQuote | null
   currency: string
   busy: boolean
-  onTopUp: (amount: number) => void
+  onTopUp: (palier: Palier) => void
 }) {
-  const { affiche } = useMontants()
-  if (amounts.length === 0) return null
+  const { affiche, devise } = useMontants()
+  const paliers = paliersDeRecharge(amounts, amountsEur, devise)
+  if (paliers.length === 0) return null
 
+  // Le manque est en F CFA (le portefeuille l'est) : on compare ce que chaque
+  // palier crédite réellement, en F CFA, quelle que soit sa devise.
   const manquant = wallet?.manquant ?? 0
-  const suffisant = manquant > 0 ? amounts.find((amount) => amount >= manquant) : undefined
+  const suffisant = manquant > 0 ? paliers.find((p) => p.xof >= manquant) : undefined
 
   return (
     <div className="mt-4 rounded-xl border border-dashed border-border px-5 py-4">
@@ -1215,21 +1224,21 @@ function TopUpOffer({
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {amounts.map((amount) => (
+        {paliers.map((palier) => (
           <button
-            key={amount}
+            key={`${palier.zone}-${palier.montant}`}
             type="button"
             disabled={busy}
-            onClick={() => onTopUp(amount)}
+            onClick={() => onTopUp(palier)}
             className={cn(
               'h-11 rounded-xl border px-4 text-sm font-semibold transition-colors disabled:opacity-50',
-              amount === suffisant
+              palier === suffisant
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border hover:bg-accent',
             )}
           >
-            {affiche(amount, currency)}
-            {amount === suffisant && (
+            {affiche(palier.xof, currency)}
+            {palier === suffisant && (
               <span className="ml-1 font-normal text-muted-foreground">· suffit</span>
             )}
           </button>

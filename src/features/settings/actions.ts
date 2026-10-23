@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { requireUser } from '@/lib/dal'
 import { createClient } from '@/lib/supabase/server'
 import { type FormState } from '@/lib/form-state'
-import { parsePricing, siteSettingsSchema } from '@/features/settings/schema'
+import { parsePricing, parseSiteSettings } from '@/features/settings/schema'
 import { SETTINGS_TAG } from '@/features/settings/queries'
 
 /** Écrit un lot de paramètres en une seule requête (upsert sur la clé). */
@@ -45,15 +45,7 @@ export async function updateSiteSettings(
 ): Promise<FormState> {
   await requireUser()
 
-  const parsed = siteSettingsSchema.safeParse({
-    contact_phone: formData.get('contact_phone'),
-    contact_email: formData.get('contact_email'),
-    contact_address: formData.get('contact_address'),
-    notification_email: formData.get('notification_email'),
-    recharge_amounts: formData.get('recharge_amounts'),
-    avg_print_time: formData.get('avg_print_time'),
-    payment_methods_count: formData.get('payment_methods_count'),
-  })
+  const parsed = parseSiteSettings(formData)
   if (!parsed.success) {
     return { status: 'error', errors: z.flattenError(parsed.error).fieldErrors }
   }

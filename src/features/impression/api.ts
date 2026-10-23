@@ -207,6 +207,8 @@ export type Quote = {
    * recharge serait refusée après le choix du client.
    */
   montants_de_recharge?: number[]
+  /** Paliers de la zone euro, en euros ; vide tant qu'ils ne sont pas saisis. */
+  montants_de_recharge_eur?: number[]
 }
 
 export type Payment = {
@@ -335,20 +337,25 @@ export async function getUploadLimits(): Promise<UploadLimits> {
  * choisi.
  */
 export type TopUpConfig = {
+  /** Paliers en F CFA. */
   amounts: number[]
   currency: string
+  /** Paliers de la zone euro, EN EUROS (5, 10, 20, 50). Vide : non saisis. */
+  amountsEur: number[]
 }
 
 /** Repli si la centrale est injoignable : ses propres valeurs par défaut. */
 export const DEFAULT_TOPUP_CONFIG: TopUpConfig = {
   amounts: [100, 500, 1000, 2000, 5000],
   currency: 'F CFA',
+  amountsEur: [],
 }
 
 export async function getTopUpConfig(): Promise<TopUpConfig> {
   try {
     const config = await request<{
       wallet_topup_amounts?: number[]
+      wallet_topup_amounts_eur?: number[]
       currency?: string
     }>('/payments/config/pricing')
     const amounts = (config.wallet_topup_amounts ?? []).filter((m) => m > 0)
@@ -358,6 +365,7 @@ export async function getTopUpConfig(): Promise<TopUpConfig> {
       // là-bas, et la coder ici finirait par afficher une monnaie que le
       // service n'emploie plus.
       currency: config.currency || DEFAULT_TOPUP_CONFIG.currency,
+      amountsEur: (config.wallet_topup_amounts_eur ?? []).filter((m) => m > 0),
     }
   } catch {
     return DEFAULT_TOPUP_CONFIG
@@ -404,8 +412,13 @@ export function createPayment(options: PrintOptions, email: string | null, moyen
  * impressions qui suivent sont débitées du solde, sans nouvel appel ici. Une
  * page à 10 F ne justifierait ni les frais ni la latence d'un paiement mobile.
  */
-export function topUpWallet(email: string, amount: number, moyen = '') {
-  return postJson<Payment>('/payments/topup', { email, amount, moyen })
+/**
+ * `zone` : la devise du palier. En « EUR », `amount` est en euros (10), la
+ * centrale le vérifie contre ses paliers euros puis crédite l'équivalent en
+ * F CFA ; la carte débite exactement 10,00 €.
+ */
+export function topUpWallet(email: string, amount: number, moyen = '', zone: ZoneTarifaire = 'XOF') {
+  return postJson<Payment>('/payments/topup', { email, amount, moyen, zone })
 }
 
 /**

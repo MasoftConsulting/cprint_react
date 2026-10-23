@@ -17,6 +17,9 @@ export type Machine = {
   date_acquisition: string | null
   date_mise_service: string | null
   actif: boolean
+  /** Vraies tant que la migration 005 n'a pas créé les colonnes. */
+  photocopie: boolean
+  scan: boolean
 }
 
 /** Une machine et les sites auxquels elle est affectée. */
@@ -24,8 +27,22 @@ export type MachineWithSites = Machine & {
   sites: { id_site: number; site_name: string }[]
 }
 
-const COLUMNS =
+const COLUMNS_SANS_OPTIONS =
   'id_machine, serial_number, machine_name, mac_address, ip_address, type, fonction, date_acquisition, date_mise_service, actif'
+const COLUMNS = `${COLUMNS_SANS_OPTIONS}, photocopie, scan`
+
+/**
+ * Colonne absente : la migration 005 n'est pas encore lancée. Supabase répond
+ * alors 42703 (« column machine.photocopie does not exist ») — relevé sur la
+ * vraie base, pas supposé. On relit sans les options plutôt que d'afficher un
+ * parc vide : c'est ce qui avait rendu toutes les fiches de site introuvables
+ * quand `agent_name` manquait.
+ */
+function optionsAbsentes(error: { code?: string; message?: string } | null): boolean {
+  return Boolean(
+    error && error.code === '42703' && /photocopie|scan/.test(error.message ?? ''),
+  )
+}
 
 function normalize(row: Record<string, unknown>): Machine {
   const text = (value: unknown) => (value === null || value === undefined ? null : String(value))
@@ -41,6 +58,8 @@ function normalize(row: Record<string, unknown>): Machine {
     date_acquisition: text(row.date_acquisition),
     date_mise_service: text(row.date_mise_service),
     actif: row.actif === true,
+    photocopie: row.photocopie !== false,
+    scan: row.scan !== false,
   }
 }
 
@@ -52,11 +71,14 @@ function normalize(row: Record<string, unknown>): Machine {
 export async function getMachines(): Promise<MachineWithSites[]> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('machine')
-    .select(`${COLUMNS}, affectation ( print_points ( id_site, site_name ) )`)
-    .order('actif', { ascending: false })
-    .order('serial_number', { ascending: true })
+  const lire = (colonnes: string) =>
+    supabase
+      .from('machine')
+      .select(`${colonnes}, affectation ( print_points ( id_site, site_name ) )`)
+      .order('actif', { ascending: false })
+      .order('serial_number', { ascending: true })
+  let { data, error } = await lire(COLUMNS)
+  if (optionsAbsentes(error)) ({ data, error } = await lire(COLUMNS_SANS_OPTIONS))
 
   if (error || !data) {
     logQueryError('lecture du parc de machines', error)
@@ -64,7 +86,7 @@ export async function getMachines(): Promise<MachineWithSites[]> {
   }
 
   return data.map((row) => {
-    const record = row as Record<string, unknown>
+    const record = row as unknown as Record<string, unknown>
     const affectations = (record.affectation ?? []) as {
       print_points: { id_site: number; site_name: string } | null
     }[]
@@ -81,16 +103,19 @@ export async function getMachines(): Promise<MachineWithSites[]> {
 export async function findMachine(idMachine: number): Promise<MachineWithSites | null> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('machine')
-    .select(`${COLUMNS}, affectation ( print_points ( id_site, site_name ) )`)
-    .eq('id_machine', idMachine)
-    .maybeSingle()
+  const lire = (colonnes: string) =>
+    supabase
+      .from('machine')
+      .select(`${colonnes}, affectation ( print_points ( id_site, site_name ) )`)
+      .eq('id_machine', idMachine)
+      .maybeSingle()
+  let { data, error } = await lire(COLUMNS)
+  if (optionsAbsentes(error)) ({ data, error } = await lire(COLUMNS_SANS_OPTIONS))
 
   if (error) logQueryError('lecture d’une machine', error)
   if (error || !data) return null
 
-  const record = data as Record<string, unknown>
+  const record = data as unknown as Record<string, unknown>
   const affectations = (record.affectation ?? []) as {
     print_points: { id_site: number; site_name: string } | null
   }[]

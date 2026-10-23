@@ -37,6 +37,9 @@ create table if not exists public.machine (
   -- qu'un ALTER de la contrainte.
   type              text not null default 'A4' check (type in ('A4', 'A3')),
   fonction          text not null default 'mono' check (fonction in ('mono', 'couleur')),
+  -- Options affichées sur la page Points (migration 005).
+  photocopie        boolean not null default true,
+  scan              boolean not null default true,
   date_acquisition  date,
   date_mise_service date,
   actif             boolean not null default true,
@@ -224,6 +227,21 @@ with (security_invoker = off) as
    group by p.id_site;
 
 grant select on public.site_machine_counts to anon, authenticated;
+
+-- Options des machines de chaque site, SANS identifiant (migration 005).
+create or replace view public.site_machine_options
+with (security_invoker = off) as
+  select a.id_site,
+         (row_number() over (partition by a.id_site order by m.id_machine))::int as rang,
+         m.fonction,
+         m.type,
+         m.photocopie,
+         m.scan
+    from public.affectation a
+    join public.machine m on m.id_machine = a.id_machine
+   where m.actif;
+
+grant select on public.site_machine_options to anon, authenticated;
 
 drop policy if exists "faq lecture publique" on public.faq;
 create policy "faq lecture publique"

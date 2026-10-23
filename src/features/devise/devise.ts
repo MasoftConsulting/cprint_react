@@ -152,6 +152,25 @@ export function prixDeZone(grille: GrilleTarifaire, zone: Devise): PrixDeZone {
   return { mono: grille.nb, couleur: grille.couleur, livret: grille.livret, devise: 'XOF' }
 }
 
+/** Un palier de recharge : son montant dans sa devise, et ce qu'il vaut en F CFA. */
+export type Palier = { montant: number; zone: Devise; xof: number }
+
+/**
+ * Les paliers à proposer à ce visiteur.
+ *
+ * En euros, les paliers de la zone euro (5, 10, 20, 50 €) s'ils sont saisis :
+ * des montants ronds, plutôt que « 3,05 € » ou « 7,63 € ». Sinon, les paliers
+ * F CFA, affichés dans la devise du visiteur.
+ *
+ * Le portefeuille, lui, est toujours en F CFA : `xof` est ce qui sera crédité.
+ */
+export function paliersDeRecharge(xof: number[], eur: number[], devise: Devise): Palier[] {
+  if (devise === 'EUR' && eur.length > 0) {
+    return eur.map((montant) => ({ montant, zone: 'EUR', xof: montant * XOF_PAR_EUR }))
+  }
+  return xof.map((montant) => ({ montant, zone: 'XOF', xof: montant }))
+}
+
 /** Convertit puis formate : le cas le plus courant. */
 export function afficher(
   montant: number,

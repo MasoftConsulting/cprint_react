@@ -15,6 +15,7 @@ import {
   deviseDuLibelle,
   deviseDuPays,
   lireDevise,
+  paliersDeRecharge,
   prixDeZone,
   XOF_PAR_EUR,
 } from '../../src/features/devise/devise.ts'
@@ -86,6 +87,17 @@ verifier('12 pages à 0,10 € : 1,20 €, pas 1,21 €', net(afficher(12 * z1.m
 const z3 = prixDeZone({ ...avecEuro, eur: { nb: 0.1, couleur: 0.5, livret: null } }, 'EUR')
 verifier('livret euro absent : supplément F CFA converti', Math.abs(z3.livret - 100 / XOF_PAR_EUR) < 1e-12, String(z3.livret))
 verifier('zone F CFA inchangée', prixDeZone(avecEuro, 'XOF').mono === 10)
+
+// --- Paliers de recharge ---
+const pEur = paliersDeRecharge([100, 500, 1000, 2000, 5000], [5, 10, 20, 50], 'EUR')
+verifier('en euros : les paliers ronds de la zone euro',
+  pEur.map((p) => p.montant).join() === '5,10,20,50' && pEur.every((p) => p.zone === 'EUR'), JSON.stringify(pEur))
+verifier('10 € crédite 6 559,57 F CFA', Math.abs(pEur[1].xof - 6559.57) < 1e-9, String(pEur[1].xof))
+verifier('affiché exactement 10,00 €', net(afficher(pEur[1].xof, 'XOF', 'EUR')) === '10,00 €',
+  afficher(pEur[1].xof, 'XOF', 'EUR'))
+const pSans = paliersDeRecharge([100, 500], [], 'EUR')
+verifier('paliers euros non saisis : les paliers F CFA', pSans.length === 2 && pSans.every((p) => p.zone === 'XOF'))
+verifier('en F CFA : toujours les paliers F CFA', paliersDeRecharge([100, 500], [5, 10], 'XOF').every((p) => p.zone === 'XOF'))
 
 console.log(`\n${ok} vérifications passées, ${echecs} en échec`)
 process.exit(echecs ? 1 : 0)

@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { ChoixDuMoyen } from './choix-du-moyen'
 import { deviseDuMoyen, useMontants } from '@/features/devise/components/devise-client'
+import { paliersDeRecharge, type Palier } from '@/features/devise/devise'
 import {
   DEFAULT_TOPUP_CONFIG,
   getTopUpConfig,
@@ -36,9 +37,18 @@ const INPUT =
 export function RechargeForm() {
   const [email, setEmail] = useState('')
   const [config, setConfig] = useState(DEFAULT_TOPUP_CONFIG)
-  const [choisi, setChoisi] = useState<number | null>(null)
+  const [choisi, setChoisi] = useState<Palier | null>(null)
   const [moyen, setMoyen] = useState('')
-  const { affiche, debite } = useMontants()
+  const { affiche, debite, devise } = useMontants()
+  // En euros, des paliers ronds (5, 10, 20, 50 €) s'ils sont saisis ; sinon les
+  // paliers F CFA, affichés dans la devise du visiteur.
+  const paliers = paliersDeRecharge(config.amounts, config.amountsEur, devise)
+  // Un palier choisi dans l'autre devise ne vaut plus après un changement de
+  // devise : on ne le garde que s'il figure encore dans la liste affichée.
+  const choix =
+    choisi && paliers.some((p) => p.zone === choisi.zone && p.montant === choisi.montant)
+      ? choisi
+      : null
   const [busy, setBusy] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const [paiement, setPaiement] = useState<Payment | null>(null)
@@ -60,11 +70,11 @@ export function RechargeForm() {
   }
 
   async function recharger() {
-    if (!choisi) return
+    if (!choix) return
     setBusy(true)
     setErreur(null)
     try {
-      const cree = await topUpWallet(email.trim(), choisi, moyen)
+      const cree = await topUpWallet(email.trim(), choix.montant, moyen, choix.zone)
       setPaiement(cree)
       // La page de paiement s'ouvre dans cet onglet : le client y termine, et
       // revient sur /imprimer/portefeuille.
@@ -136,27 +146,30 @@ export function RechargeForm() {
             nombre de montants : la liste se règle côté centrale, et une grille
             figée à 4 laissait un cinquième montant seul sur sa ligne. */}
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
-          {config.amounts.map((montant) => (
-            <button
-              key={montant}
-              type="button"
-              onClick={() => setChoisi(montant)}
-              aria-pressed={choisi === montant}
-              className={cn(
-                'h-12 rounded-xl border text-sm font-semibold transition-colors',
-                choisi === montant
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border hover:bg-accent',
-              )}
-            >
-              {affiche(montant, config.currency)}
-            </button>
-          ))}
+          {paliers.map((palier) => {
+            const actif = choix?.zone === palier.zone && choix.montant === palier.montant
+            return (
+              <button
+                key={`${palier.zone}-${palier.montant}`}
+                type="button"
+                onClick={() => setChoisi(palier)}
+                aria-pressed={actif}
+                className={cn(
+                  'h-12 rounded-xl border text-sm font-semibold transition-colors',
+                  actif
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border hover:bg-accent',
+                )}
+              >
+                {affiche(palier.xof, config.currency)}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       <ChoixDuMoyen
-        montant={choisi ?? 0}
+        montant={choix?.xof ?? 0}
         valeur={moyen}
         devise={config.currency}
         onChange={setMoyen}
@@ -189,7 +202,7 @@ export function RechargeForm() {
       <button
         type="button"
         onClick={recharger}
-        disabled={busy || !choisi || !email.includes('@')}
+        disabled={busy || !choix || !email.includes('@')}
         className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
@@ -200,8 +213,8 @@ export function RechargeForm() {
         ) : (
           <>
             <Wallet className="h-5 w-5" aria-hidden />
-            {choisi
-              ? `Recharger ${debite(choisi, config.currency, deviseDuMoyen(moyen))}`
+            {choix
+              ? `Recharger ${debite(choix.xof, config.currency, deviseDuMoyen(moyen))}`
               : 'Choisissez un montant'}
           </>
         )}

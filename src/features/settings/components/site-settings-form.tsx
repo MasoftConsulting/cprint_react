@@ -114,8 +114,27 @@ export function SiteSettingsForm({ settings }: { settings: Record<SettingKey, st
           <FieldError messages={state.errors?.recharge_amounts} />
           <p className="mt-2 text-xs text-muted-foreground">
             C&apos;est <strong>la</strong> liste des montants proposés aux clients : le site et
-            la centrale la lisent ici, et la centrale refuse tout autre montant. En F CFA,
-            affichés en euros aux visiteurs qui lisent l&apos;euro.
+            la centrale la lisent ici, et la centrale refuse tout autre montant.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="recharge_amounts_eur" className="text-sm font-medium text-muted-foreground">
+            Montants en euros (zone euro, séparés par des virgules)
+          </label>
+          <input
+            id="recharge_amounts_eur"
+            name="recharge_amounts_eur"
+            type="text"
+            defaultValue={settings.recharge_amounts_eur}
+            placeholder="5,10,20,50"
+            className={INPUT_CLASS}
+          />
+          <FieldError messages={state.errors?.recharge_amounts_eur} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Proposés aux visiteurs qui lisent l&apos;euro, plutôt que des conversions comme
+            « 3,05 € ». Le portefeuille reste tenu en F CFA : 10 € créditent 6 559,57 F CFA, et
+            la carte débite exactement 10,00 €. Vide : les montants F CFA ci-dessus, convertis.
           </p>
         </div>
       </section>

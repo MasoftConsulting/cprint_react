@@ -15,6 +15,15 @@ const MESSAGES: Record<string, { title: string; description: string }> = {
   deleted: { title: 'Enregistrement supprimé', description: 'La fiche a bien été supprimée.' },
   assigned: { title: 'Machine affectée', description: 'La machine est désormais installée sur ce site.' },
   unassigned: { title: 'Affectation retirée', description: 'La machine redevient disponible.' },
+  // Machine enregistrée, mais la base n'a pas encore les colonnes des options.
+  'created-sans-options': {
+    title: 'Machine ajoutée, sans ses options',
+    description: 'Photocopie et scan ne sont pas enregistrés : lancez la migration 005 dans Supabase.',
+  },
+  'updated-sans-options': {
+    title: 'Modifications enregistrées, sauf les options',
+    description: 'Photocopie et scan ne sont pas enregistrés : lancez la migration 005 dans Supabase.',
+  },
 }
 
 export function FlashToast() {

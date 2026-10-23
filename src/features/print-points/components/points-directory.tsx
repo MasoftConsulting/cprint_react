@@ -8,6 +8,7 @@ import { cn } from '@/lib/cn'
 import type { PrintPointWithMachines } from '@/features/print-points/queries'
 import { formatSiteAddress, statusLabel } from '@/features/print-points/schema'
 import { MARQUE } from '@/lib/marque'
+import { OptionsDuPoint } from './options-du-point'
 
 // Leaflet manipule `window` : il ne doit pas être rendu côté serveur.
 const PointsMap = dynamic(
@@ -216,7 +217,13 @@ export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }
               {(() => {
                 const etat = point.agent_name ? etats[point.agent_name] : undefined
                 if (!etat) return null
-                const options = [etat.a3 && 'A3', etat.livret && 'Livret agrafé'].filter(Boolean)
+                // Les options détaillées (couleur, format, photocopie, scan,
+                // livret) s'affichent plus bas dès que les machines sont
+                // décrites ; ces pastilles ne servent qu'en leur absence.
+                const options =
+                  point.machines.length > 0
+                    ? []
+                    : [etat.a3 && 'A3', etat.livret && 'Livret agrafé'].filter(Boolean)
                 return (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span
@@ -247,6 +254,11 @@ export function PointsDirectory({ points }: { points: PrintPointWithMachines[] }
                   </div>
                 )
               })()}
+
+              <OptionsDuPoint
+                machines={point.machines}
+                livret={Boolean(point.agent_name && etats[point.agent_name]?.livret)}
+              />
 
               {distance !== null && (
                 <p className="mt-2 text-sm font-semibold text-primary">
