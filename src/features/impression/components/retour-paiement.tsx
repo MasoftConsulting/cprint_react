@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, Loader2, Printer, Wallet, XCircle } from 'lucide-react'
 
 import { getPayment, isPrintApiConfigured, type Payment } from '../api'
+import { avecPaiement, lireRetour } from '../retour'
 import { deviseDuPaiement, useMontants } from '@/features/devise/components/devise-client'
 import { MARQUE } from '@/lib/marque'
 
@@ -36,10 +37,21 @@ const INTERVALLE_LENT_MS = 8000
 const TOURS_RAPIDES = 20
 const ATTENTE_MAX_MS = 5 * 60 * 1000
 
+/**
+ * Le temps de lire le résultat avant d'être ramené à la page d'appel. Assez
+ * pour voir « confirmé » ou « non abouti », pas assez pour chercher quoi faire.
+ */
+const DELAI_RETOUR_MS = 2500
+
 type Etat =
   | { phase: 'sans-reference' }
   | { phase: 'lecture'; paiement: Payment | null }
-  | { phase: 'lu'; paiement: Payment }
+  | {
+      phase: 'lu'
+      paiement: Payment
+      /** La page d'où le paiement est parti, si cet onglet l'a mémorisée. */
+      retour: string | null
+    }
   | { phase: 'introuvable' }
 
 export type RetourPaiementProps = {
@@ -111,7 +123,17 @@ export function RetourPaiement({
           setTimeout(lire, tours < TOURS_RAPIDES ? INTERVALLE_RAPIDE_MS : INTERVALLE_LENT_MS)
           return
         }
-        setEtat({ phase: 'lu', paiement })
+        // Statut final : retour à la page d'appel, qui reprend avec ce
+        // résultat (code de retrait, solde crédité, ou paiement à refaire).
+        // Jamais sur un paiement encore en attente : revenu au parcours, le
+        // client pourrait payer une seconde fois ce qui est peut-être réglé.
+        const retour = paiement.status === 'PENDING' ? null : lireRetour(reference)
+        setEtat({ phase: 'lu', paiement, retour })
+        if (retour) {
+          setTimeout(() => {
+            if (vivant) window.location.replace(avecPaiement(retour, reference))
+          }, DELAI_RETOUR_MS)
+        }
       } catch {
         if (!vivant) return
         // Référence inconnue ou centrale injoignable : on ne conclut rien.
@@ -173,6 +195,7 @@ export function RetourPaiement({
               vous êtes devant la machine.
             </p>
           )}
+          <RetourAuto url={etat.retour} reference={paiement.reference} />
           <Reference valeur={paiement.reference} />
         </Cadre>
       )
@@ -197,6 +220,7 @@ export function RetourPaiement({
           <p className="mt-4 text-sm text-muted-foreground">
             Rien ne vous a été débité tant que le paiement n&apos;est pas confirmé.
           </p>
+          <RetourAuto url={etat.retour} reference={paiement.reference} />
           <Reference valeur={paiement.reference} />
         </Cadre>
       )
@@ -227,6 +251,7 @@ export function RetourPaiement({
               ? 'Votre code reste valable : relancez le paiement depuis la borne.'
               : `Reprenez depuis l’onglet ${MARQUE.nom} resté ouvert pour relancer le paiement.`}
         </p>
+        <RetourAuto url={etat.retour} reference={paiement.reference} />
         <Reference valeur={paiement.reference} />
       </Cadre>
     )
@@ -301,6 +326,20 @@ function Cadre({
       <h1 className="mt-6 font-display text-2xl font-extrabold sm:text-3xl">{titre}</h1>
       {children}
     </section>
+  )
+}
+
+/** Annonce le retour automatique à la page d'appel, avec un lien pour ne pas attendre. */
+function RetourAuto({ url, reference }: { url: string | null; reference: string }) {
+  if (!url) return null
+  return (
+    <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      Retour à la page précédente…{' '}
+      <a href={avecPaiement(url, reference)} className="font-medium text-primary underline">
+        Y aller maintenant
+      </a>
+    </p>
   )
 }
 

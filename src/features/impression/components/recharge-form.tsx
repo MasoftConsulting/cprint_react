@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react'
 
 import { cn } from '@/lib/cn'
 import { ChoixDuMoyen } from './choix-du-moyen'
+import { memoriserRetour } from '../retour'
 import { deviseDuMoyen, useMontants } from '@/features/devise/components/devise-client'
 import { paliersDeRecharge, type Palier } from '@/features/devise/devise'
 import {
@@ -76,9 +77,12 @@ export function RechargeForm() {
     try {
       const cree = await topUpWallet(email.trim(), choix.montant, moyen, choix.zone)
       setPaiement(cree)
-      // La page de paiement s'ouvre dans cet onglet : le client y termine, et
-      // revient sur /imprimer/portefeuille.
-      if (cree.payment_url) window.location.href = cree.payment_url
+      // La page de paiement s'ouvre dans cet onglet : le client y termine,
+      // passe par /imprimer/portefeuille, qui le ramène ici.
+      if (cree.payment_url) {
+        memoriserRetour(cree.reference, window.location.pathname)
+        window.location.href = cree.payment_url
+      }
     } catch (cause) {
       setErreur(
         cause instanceof PrintApiError

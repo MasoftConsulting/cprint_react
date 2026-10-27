@@ -22,6 +22,7 @@ import {
 
 import { cn } from '@/lib/cn'
 import { ChoixDuMoyen } from './choix-du-moyen'
+import { memoriserRetour } from '../retour'
 import {
   createPayment,
   createSession,
@@ -118,6 +119,8 @@ export function PrintFlowFromQuery() {
       // zone du point où le client se trouve — c'est elle qui fixe le prix.
       codeInitial={params.get('code')}
       zoneInitiale={zone === 'EUR' || zone === 'XOF' ? zone : null}
+      // Retour d'une page de paiement : la référence à afficher sur l'écran final.
+      paiementRetour={params.get('paiement')}
     />
   )
 }
@@ -126,10 +129,12 @@ export function PrintFlow({
   resumeToken = null,
   codeInitial = null,
   zoneInitiale = null,
+  paiementRetour = null,
 }: {
   resumeToken?: string | null
   codeInitial?: string | null
   zoneInitiale?: ZoneTarifaire | null
+  paiementRetour?: string | null
 }) {
   const [step, setStep] = useState<Step>(resumeToken ? 'resuming' : 'start')
   const [error, setError] = useState<string | null>(null)
@@ -191,6 +196,7 @@ export function PrintFlow({
    * applique la même règle de son côté (`payment_service.assert_paid`) ; cet
    * état dérivé ne fait que l'exprimer à l'écran, sans jamais s'y substituer.
    */
+  const pageDAppel = pageDeReprise(session, code, zone)
   const optionsKey = useMemo(
     () =>
       `${[...selected].sort((a, b) => a - b).join(',')}|${colorMode}|${copies}|${paperSize}|${zone ?? ''}`,
@@ -282,10 +288,27 @@ export function PrintFlow({
         }
         setSession(resumedSession(state, window.location.origin))
         if (state.code) {
-          // Impression gratuite : le code a été remis dès l'envoi.
           setCode(state.code)
           setReady({ paid: null, pages: state.total_pages, simulated: false })
           setStep('ready')
+          // De retour d'une page de paiement : l'écran final dit ce qui a été
+          // réglé. Sans référence, c'est une impression gratuite, dont le
+          // code a été remis dès l'envoi.
+          if (paiementRetour) {
+            getPayment(paiementRetour)
+              .then((paye) => {
+                if (cancelled || paye.status !== 'APPROVED') return
+                setReady({
+                  paid: paidOf(paye),
+                  pages: paye.pages || state.total_pages,
+                  simulated: paye.provider === 'SIMULATED',
+                  provider: paye.provider,
+                })
+              })
+              .catch(() => {
+                // L'écran garde le code : c'est l'essentiel.
+              })
+          }
         } else if (state.documents.length > 0) {
           showDocuments(state.documents)
         } else {
@@ -303,7 +326,7 @@ export function PrintFlow({
     return () => {
       cancelled = true
     }
-  }, [resumeToken, showDocuments])
+  }, [resumeToken, paiementRetour, showDocuments])
 
   // --- Étape 1 : démarrer une session ---------------------------------------
   async function handleStart(event: React.FormEvent) {
@@ -654,12 +677,17 @@ export function PrintFlow({
       )}
 
       {step === 'paying' && payment && (
-        <PayingStep payment={payment} onCancel={() => setStep('documents')} />
+        <PayingStep
+          payment={payment}
+          pageDAppel={pageDAppel}
+          onCancel={() => setStep('documents')}
+        />
       )}
 
       {step === 'topup' && topUp && (
         <TopUpStep
           payment={topUp}
+          pageDAppel={pageDAppel}
           onCancel={() => {
             setTopUp(null)
             setStep('documents')
@@ -1352,7 +1380,26 @@ function TopUpOffer({
  * que le client est revenu sur cette page : il suffirait sinon de taper
  * l'adresse de retour pour se créditer gratuitement.
  */
-function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => void }) {
+/** Pour reprendre le parcours au retour du prestataire : la session, ou le code saisi. */
+function pageDeReprise(
+  session: PrintSession | null,
+  code: string,
+  zone: ZoneTarifaire | undefined,
+): string {
+  if (session) return `/imprimer?session=${encodeURIComponent(session.token)}`
+  if (/^\d{6}$/.test(code)) return `/imprimer?code=${code}${zone ? `&zone=${zone}` : ''}`
+  return '/imprimer'
+}
+
+function TopUpStep({
+  payment,
+  pageDAppel,
+  onCancel,
+}: {
+  payment: Payment
+  pageDAppel: string
+  onCancel: () => void
+}) {
   const { debite } = useMontants()
   return (
     <Card>
@@ -1366,8 +1413,10 @@ function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => vo
         {payment.payment_url && (
           <a
             href={payment.payment_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            // Dans cet onglet : le prestataire y renvoie le client, et la page
+            // de retour le ramène ici (voir retour.ts). Un nouvel onglet le
+            // laissait sur une page sans issue, l'écran d'appel resté derrière.
+            onClick={() => memoriserRetour(payment.reference, pageDAppel)}
             className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98]"
           >
             Ouvrir la page de paiement
@@ -1396,7 +1445,15 @@ function TopUpStep({ payment, onCancel }: { payment: Payment; onCancel: () => vo
   )
 }
 
-function PayingStep({ payment, onCancel }: { payment: Payment; onCancel: () => void }) {
+function PayingStep({
+  payment,
+  pageDAppel,
+  onCancel,
+}: {
+  payment: Payment
+  pageDAppel: string
+  onCancel: () => void
+}) {
   const { debite } = useMontants()
   return (
     <Card>
@@ -1410,8 +1467,10 @@ function PayingStep({ payment, onCancel }: { payment: Payment; onCancel: () => v
         {payment.payment_url && (
           <a
             href={payment.payment_url}
-            target="_blank"
-            rel="noopener noreferrer"
+            // Dans cet onglet : le prestataire y renvoie le client, et la page
+            // de retour le ramène ici (voir retour.ts). Un nouvel onglet le
+            // laissait sur une page sans issue, l'écran d'appel resté derrière.
+            onClick={() => memoriserRetour(payment.reference, pageDAppel)}
             className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-cta px-8 text-base font-medium text-cta-foreground shadow-[var(--shadow-cta)] transition-colors hover:brightness-105 active:scale-[0.98]"
           >
             Ouvrir la page de paiement

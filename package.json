@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "verify": "node --experimental-strip-types --no-warnings scripts/verifications/devise.mts"
+    "verify": "node --experimental-strip-types --no-warnings scripts/verifications/devise.mts && node --experimental-strip-types --no-warnings scripts/verifications/retour.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
